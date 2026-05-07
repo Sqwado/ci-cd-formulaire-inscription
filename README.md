@@ -1,5 +1,37 @@
 # Projet React - Formulaire d'inscription
 
+Application React de formulaire d'inscription avec validation des champs et sauvegarde des donnees valides dans le `localStorage`.
+
+## Pre-requis
+
+- Git
+- Node.js (version 18 ou superieure recommandee)
+- npm (installe avec Node.js)
+
+## Cloner et installer le projet
+
+```bash
+git clone https://github.com/sqwado/ci-cd-formulaire-inscription.git
+cd ci-cd-formulaire-inscription
+npm install
+```
+
+## Lancer et ouvrir l'application
+
+```bash
+npm start
+```
+
+Puis ouvrir `http://localhost:3000` dans le navigateur.
+
+## Executer les tests
+
+```bash
+npm run test
+```
+
+## Description fonctionnelle
+
 Cette application React permet a un utilisateur de s'inscrire avec un formulaire contenant :
 
 - nom
@@ -32,18 +64,6 @@ Lors de l'envoi du formulaire :
 - si tout est valide, les donnees sont sauvegardees dans `localStorage` ;
 - un message de succes est affiche ;
 - en cas d'erreur, un message explicite est affiche et rien n'est sauvegarde.
-
-## Installation
-
-```bash
-npm install
-```
-
-## Lancement de l'application
-
-```bash
-npm start
-```
 
 ## Tests et couverture
 
