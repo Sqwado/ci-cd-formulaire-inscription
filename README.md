@@ -83,7 +83,7 @@ $ npm run test
 > ci-cd-formulaire-inscription@0.1.0 test
 > react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js
 
- PASS  src/module/module.test.js                                                                                       
+ PASS  src/module/module.test.js                                                                                                  
  PASS  src/App.test.js
 ------------|---------|----------|---------|---------|-------------------
 File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
@@ -96,9 +96,9 @@ All files   |     100 |      100 |     100 |     100 |
 ------------|---------|----------|---------|---------|-------------------
 
 Test Suites: 2 passed, 2 total
-Tests:       66 passed, 66 total
+Tests:       74 passed, 74 total
 Snapshots:   0 total
-Time:        2.075 s
+Time:        2.595 s
 Ran all test suites.
 ```
 
