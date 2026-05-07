@@ -1,70 +1,91 @@
-# Getting Started with Create React App
+# Projet React - Formulaire d'inscription
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Cette application React permet a un utilisateur de s'inscrire avec un formulaire contenant :
 
-## Available Scripts
+- nom
+- prenom
+- email
+- date de naissance
+- ville
+- code postal
 
-In the project directory, you can run:
+Les donnees valides sont sauvegardees dans le `localStorage` du navigateur sous la cle `formData`.
 
-### `npm start`
+## Regles de validation
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Les controles sont centralises dans `src/module/module.js`.
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+- Le nom, le prenom et la ville doivent contenir uniquement des lettres, avec prise en charge des espaces, apostrophes et tirets.
+- L'email doit respecter un format standard `utilisateur@domaine.extension`.
+- La date de naissance doit etre une vraie date au format `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY` ou `DD-MM-YYYY`.
+- L'utilisateur doit avoir au moins 18 ans.
+- Le code postal doit correspondre a un code postal francais metropolitain ou d'outre-mer valide.
 
-### `npm test`
+## Fonctionnement
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Au chargement, l'application tente de recuperer les donnees deja sauvegardees dans le `localStorage`.
 
-### `npm run build`
+Lors de l'envoi du formulaire :
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+- les donnees sont lues avec `FormData` ;
+- chaque champ est valide par les fonctions du module ;
+- si tout est valide, les donnees sont sauvegardees dans `localStorage` ;
+- un message de succes est affiche ;
+- en cas d'erreur, un message explicite est affiche et rien n'est sauvegarde.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+## Installation
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+```bash
+npm install
+```
 
-### `npm run eject`
+## Lancement de l'application
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+```bash
+npm start
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+## Tests et couverture
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+La commande de test lance Jest via `react-scripts`, avec la couverture Istanbul.
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+```bash
+npm run test
+```
 
-## Learn More
+Exemple de resultat console :
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+```text
+$ npm run test
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+> ci-cd-formulaire-inscription@0.1.0 test
+> react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js
 
-### Code Splitting
+ PASS  src/module/module.test.js                                                                                       
+ PASS  src/App.test.js
+------------|---------|----------|---------|---------|-------------------
+File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+------------|---------|----------|---------|---------|-------------------
+All files   |     100 |      100 |     100 |     100 |                   
+ src        |     100 |      100 |     100 |     100 |                   
+  App.js    |     100 |      100 |     100 |     100 |                   
+ src/module |     100 |      100 |     100 |     100 |                   
+  module.js |     100 |      100 |     100 |     100 |                  
+------------|---------|----------|---------|---------|-------------------
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+Test Suites: 2 passed, 2 total
+Tests:       66 passed, 66 total
+Snapshots:   0 total
+Time:        2.075 s
+Ran all test suites.
+```
 
-### Analyzing the Bundle Size
+Le script exclut `src/index.js` et `src/reportWebVitals.js` de la couverture, conformement a l'enonce.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+Les tests couvrent :
 
-### Making a Progressive Web App
+- les fonctions unitaires de validation dans `src/module/module.test.js` ;
+- le rendu et les interactions du composant React dans `src/App.test.js` ;
+- le parcours d'integration reel du formulaire jusqu'a la sauvegarde dans `localStorage` dans `src/App.test.js`.
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+La couverture attendue est de 100% sur les fichiers testes.
