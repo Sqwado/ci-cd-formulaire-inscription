@@ -1,3 +1,5 @@
+const FORM_DATA_KEY = "formData";
+const REGISTRATIONS_KEY = "registrations";
 
 
 /**
@@ -259,7 +261,7 @@ function isFrenchCodePostal(codePostal) {
  */
 function saveFormData(formData) {
     try {
-        localStorage.setItem('formData', JSON.stringify(formData));
+        localStorage.setItem(FORM_DATA_KEY, JSON.stringify(formData));
     } catch (error) {
         throw new Error("unable to save form data");
     }
@@ -271,7 +273,7 @@ function saveFormData(formData) {
  * @returns {Object} - The form data object.
  */
 function getFormData() {
-    const rawFormData = localStorage.getItem('formData');
+    const rawFormData = localStorage.getItem(FORM_DATA_KEY);
     if (!rawFormData) {
         return null;
     }
@@ -286,7 +288,54 @@ function getFormData() {
  * Clear the form data object from localStorage.
  */
 function clearFormData() {
-    localStorage.removeItem('formData');
+    localStorage.removeItem(FORM_DATA_KEY);
+}
+
+/**
+ * Save registrations list to localStorage.
+ *
+ * @param {Object[]} registrations - Registrations list.
+ */
+function saveRegistrations(registrations) {
+    try {
+        localStorage.setItem(REGISTRATIONS_KEY, JSON.stringify(registrations));
+    } catch (error) {
+        throw new Error("unable to save registrations");
+    }
+}
+
+/**
+ * Get registrations list from localStorage.
+ *
+ * @returns {Object[]} - Registrations list.
+ */
+function getRegistrations() {
+    const rawRegistrations = localStorage.getItem(REGISTRATIONS_KEY);
+    if (!rawRegistrations) {
+        return [];
+    }
+    try {
+        const parsedRegistrations = JSON.parse(rawRegistrations);
+        if (!Array.isArray(parsedRegistrations)) {
+            throw new Error("invalid registrations format");
+        }
+        return parsedRegistrations;
+    } catch (error) {
+        throw new Error("unable to parse saved registrations");
+    }
+}
+
+/**
+ * Append a validated registration to localStorage.
+ *
+ * @param {Object} registration - Validated registration data.
+ * @returns {Object} - Saved registration data.
+ */
+function appendRegistration(registration) {
+    const registrations = getRegistrations();
+    const nextRegistrations = [...registrations, registration];
+    saveRegistrations(nextRegistrations);
+    return registration;
 }
 
 /**
@@ -298,7 +347,8 @@ function handleSubmit(e) {
     e.preventDefault();
     const formData = new FormData(e.target);
     const validatedData = validateFormData(formData);
-    saveFormData(validatedData);
+    appendRegistration(validatedData);
+    return validatedData;
 }
 
-export { calculateAge, validateName, validatePrenom, validateEmail, validateDateOfBirth, validateVille, validateCodePostal, validateFormData, isAdult, isFrenchCodePostal, saveFormData, getFormData, clearFormData, handleSubmit };
+export { calculateAge, validateName, validatePrenom, validateEmail, validateDateOfBirth, validateVille, validateCodePostal, validateFormData, isAdult, isFrenchCodePostal, saveFormData, getFormData, clearFormData, saveRegistrations, getRegistrations, appendRegistration, handleSubmit };

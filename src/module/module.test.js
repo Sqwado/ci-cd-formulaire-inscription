@@ -1,4 +1,4 @@
-import { calculateAge, validateName, validatePrenom, validateEmail, validateDateOfBirth, validateVille, validateCodePostal, validateFormData, isAdult, isFrenchCodePostal, saveFormData, getFormData, clearFormData, handleSubmit } from './module';
+import { calculateAge, validateName, validatePrenom, validateEmail, validateDateOfBirth, validateVille, validateCodePostal, validateFormData, isAdult, isFrenchCodePostal, saveFormData, getFormData, clearFormData, saveRegistrations, getRegistrations, appendRegistration, handleSubmit } from './module';
 
 let referenceDate = new Date(Date.now());
 
@@ -352,6 +352,51 @@ describe('localStorage helper Unit Test Suites', () => {
 });
 
 /**
+ * @function registrations localStorage helpers
+ */
+describe('registrations localStorage helper Unit Test Suites', () => {
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it('should save and retrieve registrations list', () => {
+    const registrations = [{ nom: "John" }, { nom: "Alice" }];
+    saveRegistrations(registrations);
+    expect(getRegistrations()).toEqual(registrations);
+  });
+
+  it('should return empty array when no registration exists', () => {
+    expect(getRegistrations()).toEqual([]);
+  });
+
+  it('should throw when registrations are not a JSON array', () => {
+    localStorage.setItem('registrations', JSON.stringify({ nom: "John" }));
+    expect(() => getRegistrations()).toThrow("unable to parse saved registrations");
+  });
+
+  it('should throw when saved registrations are invalid JSON', () => {
+    localStorage.setItem('registrations', '{invalid json');
+    expect(() => getRegistrations()).toThrow("unable to parse saved registrations");
+  });
+
+  it('should append a registration to existing registrations', () => {
+    saveRegistrations([{ nom: "John" }]);
+    appendRegistration({ nom: "Alice" });
+    expect(getRegistrations()).toEqual([{ nom: "John" }, { nom: "Alice" }]);
+  });
+
+  it('should throw when localStorage setItem fails for registrations', () => {
+    const setItemSpy = jest.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error("quota exceeded");
+    });
+
+    expect(() => saveRegistrations([{ nom: "John" }])).toThrow("unable to save registrations");
+
+    setItemSpy.mockRestore();
+  });
+});
+
+/**
  * @function handleSubmit
  */
 describe('handleSubmit Unit Test Suites', () => {
@@ -359,7 +404,7 @@ describe('handleSubmit Unit Test Suites', () => {
     localStorage.clear();
   });
 
-  it('should prevent default and save validated data in localStorage', () => {
+  it('should prevent default and append validated data in localStorage registrations', () => {
     const form = document.createElement('form');
     form.innerHTML = `
       <input name="nom" value="John" />
@@ -375,10 +420,10 @@ describe('handleSubmit Unit Test Suites', () => {
       preventDefault: jest.fn()
     };
 
-    handleSubmit(fakeEvent);
+    const submittedRegistration = handleSubmit(fakeEvent);
 
     expect(fakeEvent.preventDefault).toHaveBeenCalledTimes(1);
-    expect(getFormData()).toEqual({
+    expect(submittedRegistration).toEqual({
       nom: "John",
       prenom: "Doe",
       email: "john.doe@example.com",
@@ -386,6 +431,7 @@ describe('handleSubmit Unit Test Suites', () => {
       ville: "Paris",
       codePostal: "75001"
     });
+    expect(getRegistrations()).toEqual([submittedRegistration]);
   });
 });
 

@@ -1,6 +1,6 @@
 # Projet React - Formulaire d'inscription
 
-Application React de formulaire d'inscription avec validation des champs et sauvegarde des donnees valides dans le `localStorage`.
+Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, sauvegarde des inscriptions valides dans le `localStorage` et affichage de la liste des inscrits.
 
 ## Pre-requis
 
@@ -41,7 +41,7 @@ Cette application React permet a un utilisateur de s'inscrire avec un formulaire
 - ville
 - code postal
 
-Les donnees valides sont sauvegardees dans le `localStorage` du navigateur sous la cle `formData`.
+Les donnees valides sont sauvegardees dans le `localStorage` du navigateur sous la cle `registrations` (tableau d'inscriptions).
 
 ## Regles de validation
 
@@ -61,9 +61,11 @@ Lors de l'envoi du formulaire :
 
 - les donnees sont lues avec `FormData` ;
 - chaque champ est valide par les fonctions du module ;
-- si tout est valide, les donnees sont sauvegardees dans `localStorage` ;
-- un message de succes est affiche ;
-- en cas d'erreur, un message explicite est affiche et rien n'est sauvegarde.
+- si tout est valide, l'inscription est ajoutee a la liste `registrations` dans le `localStorage` ;
+- un toaster de succes est affiche ;
+- les champs du formulaire sont ensuite vides ;
+- la liste des inscrits est mise a jour dans l'interface ;
+- en cas d'erreur, un message explicite est affiche sous chaque champ invalide (en rouge) et un toaster d'erreur global est affiche.
 
 ## Tests et couverture
 
@@ -106,6 +108,6 @@ Les tests couvrent :
 
 - les fonctions unitaires de validation dans `src/module/module.test.js` ;
 - le rendu et les interactions du composant React dans `src/App.test.js` ;
-- le parcours d'integration reel du formulaire jusqu'a la sauvegarde dans `localStorage` dans `src/App.test.js`.
+- le parcours d'integration reel du formulaire jusqu'a la sauvegarde dans `localStorage`, le vidage des champs, l'affichage des erreurs par champ et la liste des inscrits dans `src/App.test.js`.
 
 La couverture attendue est de 100% sur les fichiers testes.

@@ -1,84 +1,89 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
-import { getFormData, handleSubmit } from './module/module';
+import * as moduleApi from './module/module';
 
-jest.mock('./module/module', () => {
-  const actualModule = jest.requireActual('./module/module');
-
-  return {
-    ...actualModule,
-    getFormData: jest.fn(() => null),
-    handleSubmit: jest.fn((e) => {
-      e.preventDefault();
-    }),
-  };
-});
-
-const realModule = jest.requireActual('./module/module');
-
-beforeEach(() => {
-  localStorage.clear();
-  getFormData.mockReset();
-  getFormData.mockReturnValue(null);
-  handleSubmit.mockReset();
-  handleSubmit.mockImplementation((e) => {
-    e.preventDefault();
-  });
-});
-
-afterEach(() => {
-  jest.useRealTimers();
-});
-
-test('check form submission', () => {
-  render(<App />);
-  const nomInput = screen.getByTestId('nom');
-  const prenomInput = screen.getByTestId('prenom');
-  const emailInput = screen.getByTestId('email');
-  const dateDeNaissanceInput = screen.getByTestId('dateDeNaissance');
-  const villeInput = screen.getByTestId('ville');
-  const codePostalInput = screen.getByTestId('codePostal');
-  fireEvent.change(nomInput, { target: { value: 'John' } });
-  fireEvent.change(prenomInput, { target: { value: 'Doe' } });
-  fireEvent.change(emailInput, { target: { value: 'john.doe@example.com' } });
-  fireEvent.change(dateDeNaissanceInput, { target: { value: '1990-01-01' } });
-  fireEvent.change(villeInput, { target: { value: 'Paris' } });
-  fireEvent.change(codePostalInput, { target: { value: '75001' } });
-  expect(screen.getByTestId('submit')).toBeEnabled();
-  fireEvent.click(screen.getByTestId('submit'));
-  expect(handleSubmit).toHaveBeenCalledTimes(1);
-  expect(screen.getByTestId('success-toast')).toHaveTextContent('Formulaire valide et enregistre.');
-});
-
-test('disable submit button while form fields are invalid', () => {
-  render(<App />);
-
-  expect(screen.getByTestId('submit')).toBeDisabled();
-
-  fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
-  fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
-  fireEvent.change(screen.getByTestId('email'), { target: { value: 'invalid-email' } });
-  fireEvent.change(screen.getByTestId('dateDeNaissance'), { target: { value: '1990-01-01' } });
-  fireEvent.change(screen.getByTestId('ville'), { target: { value: 'Paris' } });
-  fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '75001' } });
-
-  expect(screen.getByTestId('submit')).toBeDisabled();
-});
-
-test('hide success toast after timeout', () => {
-  jest.useFakeTimers();
-
-  render(<App />);
-
+const fillValidForm = () => {
   fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
   fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
   fireEvent.change(screen.getByTestId('email'), { target: { value: 'jean.dupont@email.com' } });
   fireEvent.change(screen.getByTestId('dateDeNaissance'), { target: { value: '1990-01-01' } });
   fireEvent.change(screen.getByTestId('ville'), { target: { value: 'Paris' } });
   fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '75001' } });
+};
+
+beforeEach(() => {
+  localStorage.clear();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
+test('disable submit button while required fields are not valid', () => {
+  render(<App />);
+  expect(screen.getByTestId('submit')).toBeDisabled();
+
+  fillValidForm();
+  expect(screen.getByTestId('submit')).toBeEnabled();
+
+  fireEvent.change(screen.getByTestId('email'), { target: { value: '' } });
+  expect(screen.getByTestId('submit')).toBeDisabled();
+});
+
+test('show field errors in red and global error toast on invalid submission', () => {
+  render(<App />);
+
+  fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
+  fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
+  fireEvent.change(screen.getByTestId('email'), { target: { value: 'email-invalide' } });
+  fireEvent.change(screen.getByTestId('dateDeNaissance'), { target: { value: '2009-01-01' } });
+  fireEvent.change(screen.getByTestId('ville'), { target: { value: 'Paris9' } });
+  fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '7500' } });
+
+  const form = screen.getByTestId('submit').closest('form');
+  fireEvent.submit(form);
+
+  expect(screen.getByTestId('email-error')).toBeInTheDocument();
+  expect(screen.getByTestId('dateOfBirth-error')).toBeInTheDocument();
+  expect(screen.getByTestId('ville-error')).toBeInTheDocument();
+  expect(screen.getByTestId('codePostal-error')).toBeInTheDocument();
+  expect(screen.getByTestId('error-toast')).toHaveTextContent('Veuillez corriger les erreurs du formulaire.');
+  expect(localStorage.getItem('registrations')).toBeNull();
+});
+
+test('submit valid form, show success toast, clear fields and save in registrations list', () => {
+  render(<App />);
+  fillValidForm();
 
   fireEvent.click(screen.getByTestId('submit'));
+
   expect(screen.getByTestId('success-toast')).toHaveTextContent('Formulaire valide et enregistre.');
+  expect(screen.getByTestId('nom')).toHaveValue('');
+  expect(screen.getByTestId('prenom')).toHaveValue('');
+  expect(screen.getByTestId('email')).toHaveValue('');
+  expect(screen.getByTestId('dateDeNaissance')).toHaveValue('');
+  expect(screen.getByTestId('ville')).toHaveValue('');
+  expect(screen.getByTestId('codePostal')).toHaveValue('');
+
+  expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([
+    {
+      nom: 'Dupont',
+      prenom: 'Jean',
+      email: 'jean.dupont@email.com',
+      dateOfBirth: '1990-01-01',
+      ville: 'Paris',
+      codePostal: '75001'
+    }
+  ]);
+});
+
+test('hide success toast after timeout', () => {
+  jest.useFakeTimers();
+  render(<App />);
+  fillValidForm();
+
+  fireEvent.click(screen.getByTestId('submit'));
+  expect(screen.getByTestId('success-toast')).toBeInTheDocument();
 
   act(() => {
     jest.advanceTimersByTime(3000);
@@ -87,121 +92,86 @@ test('hide success toast after timeout', () => {
   expect(screen.queryByTestId('success-toast')).not.toBeInTheDocument();
 });
 
-test('show error toast when submission fails', () => {
-  handleSubmit.mockImplementationOnce(() => {
-    throw new Error('Erreur de validation');
-  });
-
-  render(<App />);
-  const form = screen.getByTestId('submit').closest('form');
-
-  fireEvent.submit(form);
-
-  expect(screen.getByTestId('error-toast')).toHaveTextContent('Erreur de validation');
-});
-
-test('prefill form from localStorage data on load', () => {
-  getFormData.mockReturnValueOnce({
-    nom: 'Dupont',
-    prenom: 'Jean',
-    email: 'jean.dupont@email.com',
-    dateOfBirth: '1990-01-01',
-    ville: 'Paris',
-    codePostal: '75001'
-  });
+test('load and display previously saved registrations list', () => {
+  localStorage.setItem(
+    'registrations',
+    JSON.stringify([
+      {
+        nom: 'Martin',
+        prenom: 'Alice',
+        email: 'alice.martin@email.com',
+        dateOfBirth: '1991-04-20',
+        ville: 'Lyon',
+        codePostal: '69001'
+      }
+    ])
+  );
 
   render(<App />);
 
-  expect(screen.getByTestId('nom')).toHaveValue('Dupont');
-  expect(screen.getByTestId('prenom')).toHaveValue('Jean');
-  expect(screen.getByTestId('email')).toHaveValue('jean.dupont@email.com');
-  expect(screen.getByTestId('dateDeNaissance')).toHaveValue('1990-01-01');
-  expect(screen.getByTestId('ville')).toHaveValue('Paris');
-  expect(screen.getByTestId('codePostal')).toHaveValue('75001');
+  expect(screen.queryByTestId('no-registrations')).not.toBeInTheDocument();
+  expect(screen.getByTestId('registration-item')).toHaveTextContent('Alice Martin');
 });
 
-test('fallback to empty string for missing saved fields', () => {
-  getFormData.mockReturnValueOnce({
-    nom: 'Dupont'
-  });
-
+test('shows empty registrations message by default', () => {
   render(<App />);
-
-  expect(screen.getByTestId('nom')).toHaveValue('Dupont');
-  expect(screen.getByTestId('prenom')).toHaveValue('');
-  expect(screen.getByTestId('email')).toHaveValue('');
-  expect(screen.getByTestId('dateDeNaissance')).toHaveValue('');
-  expect(screen.getByTestId('ville')).toHaveValue('');
-  expect(screen.getByTestId('codePostal')).toHaveValue('');
+  expect(screen.getByTestId('no-registrations')).toBeInTheDocument();
 });
 
-test('show fallback error toast message when error has no message', () => {
-  handleSubmit.mockImplementationOnce(() => {
+test('show fallback error toast when localStorage parsing fails on load', () => {
+  localStorage.setItem('registrations', '{invalid json');
+  render(<App />);
+  expect(screen.getByTestId('error-toast')).toHaveTextContent('unable to parse saved registrations');
+});
+
+test('show fallback error toast when loading registrations throws without message', () => {
+  const registrationsSpy = jest.spyOn(moduleApi, 'getRegistrations').mockImplementation(() => {
     throw {};
   });
 
   render(<App />);
-  const form = screen.getByTestId('submit').closest('form');
-
-  fireEvent.submit(form);
-
   expect(screen.getByTestId('error-toast')).toHaveTextContent('Une erreur est survenue');
+  registrationsSpy.mockRestore();
 });
 
-test('fallback to empty string for missing saved nom', () => {
-  getFormData.mockReturnValueOnce({
-    prenom: 'Jean'
+test('handles unknown field name change without crashing', () => {
+  render(<App />);
+  fireEvent.change(screen.getByTestId('nom'), { target: { name: 'unknownField', value: 'foo' } });
+  expect(screen.getByTestId('submit')).toBeDisabled();
+});
+
+test('show error toast when handleSubmit throws with message', () => {
+  const submitSpy = jest.spyOn(moduleApi, 'handleSubmit').mockImplementation(() => {
+    throw new Error('Erreur de sauvegarde');
   });
 
   render(<App />);
-
-  expect(screen.getByTestId('nom')).toHaveValue('');
-  expect(screen.getByTestId('prenom')).toHaveValue('Jean');
-});
-
-test('submits a valid registration form and saves data in localStorage', () => {
-  getFormData.mockImplementation(realModule.getFormData);
-  handleSubmit.mockImplementation(realModule.handleSubmit);
-
-  render(<App />);
-
-  fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
-  fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
-  fireEvent.change(screen.getByTestId('email'), { target: { value: 'jean.dupont@email.com' } });
-  fireEvent.change(screen.getByTestId('dateDeNaissance'), { target: { value: '1990-01-01' } });
-  fireEvent.change(screen.getByTestId('ville'), { target: { value: 'Paris' } });
-  fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '75001' } });
-
+  fillValidForm();
   fireEvent.click(screen.getByTestId('submit'));
 
-  expect(screen.getByTestId('success-toast')).toHaveTextContent('Formulaire valide et enregistre.');
-  expect(JSON.parse(localStorage.getItem('formData'))).toEqual({
-    nom: 'Dupont',
-    prenom: 'Jean',
-    email: 'jean.dupont@email.com',
-    dateOfBirth: '1990-01-01',
-    ville: 'Paris',
-    codePostal: '75001'
-  });
+  expect(screen.getByTestId('error-toast')).toHaveTextContent('Erreur de sauvegarde');
+  submitSpy.mockRestore();
 });
 
-test('rejects a minor user and does not save data in localStorage', () => {
-  const today = new Date();
-  const minorBirthDate = new Date(today.getFullYear() - 17, today.getMonth(), today.getDate());
-  const formattedMinorBirthDate = minorBirthDate.toISOString().split('T')[0];
-
-  getFormData.mockImplementation(realModule.getFormData);
-  handleSubmit.mockImplementation(realModule.handleSubmit);
+test('show fallback error toast when handleSubmit throws without message', () => {
+  const submitSpy = jest.spyOn(moduleApi, 'handleSubmit').mockImplementation(() => {
+    throw {};
+  });
 
   render(<App />);
+  fillValidForm();
+  fireEvent.click(screen.getByTestId('submit'));
 
-  fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
-  fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
-  fireEvent.change(screen.getByTestId('email'), { target: { value: 'jean.dupont@email.com' } });
-  fireEvent.change(screen.getByTestId('dateDeNaissance'), { target: { value: formattedMinorBirthDate } });
-  fireEvent.change(screen.getByTestId('ville'), { target: { value: 'Paris' } });
-  fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '75001' } });
+  expect(screen.getByTestId('error-toast')).toHaveTextContent('Une erreur est survenue');
+  submitSpy.mockRestore();
+});
 
-  expect(screen.getByTestId('submit')).toBeDisabled();
-  expect(localStorage.getItem('formData')).toBeNull();
+test('display nom and prenom field errors for invalid values', () => {
+  render(<App />);
+
+  fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont1' } });
+  fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean2' } });
+
+  expect(screen.getByTestId('nom-error')).toBeInTheDocument();
+  expect(screen.getByTestId('prenom-error')).toBeInTheDocument();
 });
