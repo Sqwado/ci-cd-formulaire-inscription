@@ -13,6 +13,8 @@ jobs:
   build_test:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     strategy:
       matrix:
@@ -21,11 +23,14 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
+          registry-url: https://registry.npmjs.org
       - name: npm ci and test
         run: |
           npm ci
@@ -38,15 +43,14 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
 
       - name: build and publish package on NPM
+        if: github.event_name == 'push'
         run: |
-          git config --global user.email "mateoluque@aol.com"
-          git config --global user.name "Sqwado"
+          git config user.email "mateoluque@aol.com"
+          git config user.name "Sqwado"
           npm run build-npm-ci
-          npm version patch
+          npm version patch -m "chore: release %s"
           npm publish
-          git add .
-          git commit -m "updated version"
-          git push
+          git push --follow-tags
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Setup Pages
