@@ -25,7 +25,7 @@ function ListPage() {
     } catch (error) {
       showToast(error.message || 'Une erreur est survenue', 'error');
     }
-  }, []);
+  }, [showToast]);
 
   useEffect(() => {
     if (highlightedIndex === null || registrations.length === 0) {

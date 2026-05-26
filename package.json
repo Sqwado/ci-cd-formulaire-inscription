@@ -1,7 +1,7 @@
 {
   "name": "ci-cd-formulaire-inscription",
   "homepage": "https://sqwado.github.io/ci-cd-formulaire-inscription",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "private": false,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",

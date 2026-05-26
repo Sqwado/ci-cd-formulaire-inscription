@@ -29,7 +29,7 @@ function LegacyPage() {
     } catch (error) {
       showToast(error.message || 'Une erreur est survenue', 'error');
     }
-  }, []);
+  }, [showToast]);
 
   const onSubmit = (e) => {
     const nextErrors = validateAllFields();
