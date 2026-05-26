@@ -36,6 +36,19 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: build and publish package on NPM
+        run: |
+          git config --global user.email "${{ secrets.USER_EMAIL }}"
+          git config --global user.name "${{ secrets.USER_NAME }}"
+          npm run build-npm
+          npm version patch
+          npm publish
+          git add .
+          git commit -m "updated version"
+          git push
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v3

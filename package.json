@@ -2,7 +2,7 @@
   "name": "ci-cd-formulaire-inscription",
   "homepage": "https://sqwado.github.io/ci-cd-formulaire-inscription",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -17,6 +17,8 @@
     "start": "react-scripts start",
     "dev": "react-scripts start",
     "build": "react-scripts build",
+    "build-npm-ci": "NODE_ENV=production && rm -rf dist && mkdir dist && npx babel src --out-dir dist --copy-files",
+    "build-npm": "SET NODE_ENV=production && rm -rf dist && mkdir dist && npx babel src --out-dir dist --copy-files",
     "test": "react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
@@ -42,6 +44,9 @@
     ]
   },
   "devDependencies": {
+    "@babel/cli": "^7.29.7",
+    "@babel/core": "^7.29.7",
+    "@babel/plugin-transform-react-jsx": "^7.29.7",
     "gh-pages": "^6.3.0",
     "jsdoc": "^4.0.5",
     "react-test-renderer": "^19.2.5"
