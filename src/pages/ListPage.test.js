@@ -11,7 +11,7 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
-test('met en evidence la ligne correspondant a highlightEmail', () => {
+test('met en evidence uniquement la ligne a l index highlightIndex', () => {
   localStorage.setItem(
     'registrations',
     JSON.stringify([
@@ -22,16 +22,26 @@ test('met en evidence la ligne correspondant a highlightEmail', () => {
         dateOfBirth: '1991-04-20',
         ville: 'Lyon',
         codePostal: '69001'
+      },
+      {
+        nom: 'Martin',
+        prenom: 'Alice',
+        email: 'alice.martin@email.com',
+        dateOfBirth: '1992-05-21',
+        ville: 'Lyon',
+        codePostal: '69002'
       }
     ])
   );
 
   renderWithRouter(<ListPage />, {
     route: '/list',
-    state: { highlightEmail: 'alice.martin@email.com' }
+    state: { highlightIndex: 1 }
   });
 
-  expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
+  const items = screen.getAllByTestId('registration-item');
+  expect(items[0]).not.toHaveClass('registration-item-highlight');
+  expect(items[1]).toHaveClass('registration-item-highlight');
 });
 
 test('fait defiler vers la ligne mise en evidence quand scrollIntoView est disponible', () => {
@@ -54,7 +64,7 @@ test('fait defiler vers la ligne mise en evidence quand scrollIntoView est dispo
 
   renderWithRouter(<ListPage />, {
     route: '/list',
-    state: { highlightEmail: 'alice.martin@email.com' }
+    state: { highlightIndex: 0 }
   });
 
   expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth', block: 'nearest' });
@@ -80,7 +90,7 @@ test('retire la mise en evidence apres le delai', () => {
 
   renderWithRouter(<ListPage />, {
     route: '/list',
-    state: { highlightEmail: 'alice.martin@email.com' }
+    state: { highlightIndex: 0 }
   });
 
   expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
@@ -166,7 +176,7 @@ test('annule le delai de mise en evidence au demontage du composant', () => {
 
   const { unmount } = renderWithRouter(<ListPage />, {
     route: '/list',
-    state: { highlightEmail: 'alice.martin@email.com' }
+    state: { highlightIndex: 0 }
   });
 
   unmount();

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import './RegistrationPage.css';
 import {
+  getRegistrations,
   handleSubmit,
   validateCodePostal,
   validateDateOfBirth,
@@ -105,8 +106,9 @@ function RegistrationPage() {
     }
 
     try {
-      const savedRegistration = handleSubmit(e);
-      navigate('/list', { state: { highlightEmail: savedRegistration.email } });
+      handleSubmit(e);
+      const highlightIndex = getRegistrations().length - 1;
+      navigate('/list', { state: { highlightIndex } });
     } catch (error) {
       e.preventDefault();
       setToastMessage(error.message || 'Une erreur est survenue');

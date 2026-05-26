@@ -10,8 +10,8 @@ function ListPage() {
   const location = useLocation();
   const [toastMessage, setToastMessage] = useState('');
   const [registrations, setRegistrations] = useState([]);
-  const [highlightedEmail, setHighlightedEmail] = useState(
-    () => location.state?.highlightEmail ?? null
+  const [highlightedIndex, setHighlightedIndex] = useState(
+    () => (typeof location.state?.highlightIndex === 'number' ? location.state.highlightIndex : null)
   );
 
   useEffect(() => {
@@ -35,23 +35,23 @@ function ListPage() {
   }, [toastMessage]);
 
   useEffect(() => {
-    if (!highlightedEmail) {
+    if (highlightedIndex === null || registrations.length === 0) {
       return undefined;
     }
 
     const highlightedElement = document.querySelector(
-      `[data-highlight-email="${highlightedEmail}"]`
+      `[data-highlight-index="${highlightedIndex}"]`
     );
     if (typeof highlightedElement?.scrollIntoView === 'function') {
       highlightedElement.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     const timeoutId = setTimeout(() => {
-      setHighlightedEmail(null);
+      setHighlightedIndex(null);
     }, HIGHLIGHT_DURATION);
 
     return () => clearTimeout(timeoutId);
-  }, [highlightedEmail, registrations]);
+  }, [highlightedIndex, registrations]);
 
   return (
     <section className="registrations-section" data-testid="list-page">
@@ -64,9 +64,9 @@ function ListPage() {
             <li
               key={`${registration.email}-${index}`}
               data-testid="registration-item"
-              data-highlight-email={registration.email}
+              data-highlight-index={index}
               className={
-                registration.email === highlightedEmail ? 'registration-item-highlight' : undefined
+                index === highlightedIndex ? 'registration-item-highlight' : undefined
               }
             >
               {registration.prenom} {registration.nom} - {registration.email} - {registration.dateOfBirth} - {registration.ville} ({registration.codePostal})
