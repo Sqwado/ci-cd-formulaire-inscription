@@ -41,7 +41,7 @@ jobs:
         run: |
           git config --global user.email "mateoluque@aol.com"
           git config --global user.name "Sqwado"
-          npm run build-npm
+          npm run build-npm-ci
           npm version patch
           npm publish
           git add .
