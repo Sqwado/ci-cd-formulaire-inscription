@@ -26,7 +26,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-          registry-url: https://registry.npmjs.org
       - name: npm ci and test
         run: |
           npm ci
@@ -40,9 +39,9 @@ jobs:
 
       - name: build and publish package on NPM
         run: |
-          git config --global user.email "${{ secrets.USER_EMAIL }}"
-          git config --global user.name "${{ secrets.USER_NAME }}"
-          npm run build-npm-ci
+          git config --global user.email "mateoluque@aol.com"
+          git config --global user.name "Sqwado"
+          npm run build-npm
           npm version patch
           npm publish
           git add .
