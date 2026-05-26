@@ -47,6 +47,22 @@ describe('validateName Unit Test Suites', () => {
     it('should return "John" for "John"', () => {
       expect(validateName("John")).toEqual("John");
     });
+
+    it('should return "François" for accented name', () => {
+      expect(validateName("François")).toEqual("François");
+    });
+
+    it('should return "Jean-Pierre" for hyphenated name', () => {
+      expect(validateName("Jean-Pierre")).toEqual("Jean-Pierre");
+    });
+
+    it("should return \"O'Brien\" for apostrophe name", () => {
+      expect(validateName("O'Brien")).toEqual("O'Brien");
+    });
+
+    it('should return "  Marie  " trimmed', () => {
+      expect(validateName("  Marie  ")).toEqual("Marie");
+    });
   });
 
   describe('invalid data tests', () => {
@@ -71,6 +87,14 @@ describe('validatePrenom Unit Test Suites', () => {
   describe('valid data tests', () => {
     it('should return "Doe" for "Doe"', () => {
       expect(validatePrenom("Doe")).toEqual("Doe");
+    });
+
+    it('should return "Zoë" for prenom with diaeresis', () => {
+      expect(validatePrenom("Zoë")).toEqual("Zoë");
+    });
+
+    it('should return "Anne Marie" for compound prenom', () => {
+      expect(validatePrenom("Anne Marie")).toEqual("Anne Marie");
     });
   });
 
@@ -291,6 +315,24 @@ describe('validateFormData Unit Test Suites', () => {
     it('should throw a "form data must be a FormData" error', () => {
       expect(() => validateFormData(123)).toThrow("form data must be a FormData")
     })
+  });
+});
+
+/**
+ * @function isAdult
+ */
+describe('isAdult Unit Test Suites', () => {
+  it('should return false for a 17 years old person', () => {
+    expect(isAdult(birthDate17)).toBe(false);
+  });
+
+  it('should return true for an 18 years old person', () => {
+    expect(isAdult(birthDate18)).toBe(true);
+  });
+
+  it('should return true for a person older than 18', () => {
+    const birthDate30 = new Date(referenceDate.getFullYear() - 30, referenceDate.getMonth(), referenceDate.getDate());
+    expect(isAdult(birthDate30)).toBe(true);
   });
 });
 

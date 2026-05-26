@@ -1,4 +1,6 @@
-import { Link } from 'react-router-dom';
+import NavLink from '../components/NavLink/NavLink';
+import PageNavigation from '../components/PageNavigation/PageNavigation';
+import { DOCS_URL } from '../constants/navigation';
 import './HomePage.css';
 
 function HomePage() {
@@ -9,14 +11,20 @@ function HomePage() {
         Inscrivez-vous en quelques clics. Renseignez vos informations personnelles
         et consultez la liste des inscrits.
       </p>
-      <div className="home-actions">
-        <Link to="/register" className="home-link-button" data-testid="go-to-registration">
+      <PageNavigation variant="inline" ariaLabel="Navigation accueil">
+        <NavLink to="/register" variant="primary" testId="go-to-registration">
           Commencer l&apos;inscription
-        </Link>
-        <Link to="/list" className="home-link-button home-link-button-secondary" data-testid="go-to-list">
+        </NavLink>
+        <NavLink to="/list" testId="go-to-list">
           Voir la liste des inscrits
-        </Link>
-      </div>
+        </NavLink>
+        <NavLink to="/legacy" testId="go-to-legacy">
+          Mode legacy (formulaire + liste)
+        </NavLink>
+        <NavLink href={DOCS_URL} external testId="go-to-docs">
+          Documentation
+        </NavLink>
+      </PageNavigation>
     </section>
   );
 }

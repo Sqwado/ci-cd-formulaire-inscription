@@ -1,0 +1,39 @@
+.legacy-page {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 20px;
+}
+
+.legacy-page-header {
+  width: 100%;
+  color: #f8fafc;
+  text-align: center;
+}
+
+.legacy-page .register-form,
+.legacy-page .registrations-section {
+  width: 100%;
+}
+
+.legacy-page-header h1 {
+  margin: 0 0 8px 0;
+}
+
+.legacy-page-header p {
+  margin: 0 0 12px 0;
+  color: #cbd5e1;
+}
+
+.legacy-page-header .nav-link--primary.nav-link--on-dark {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+
+.legacy-page-header .nav-link--primary.nav-link--on-dark:hover {
+  background: #1d4ed8;
+  border-color: #1d4ed8;
+}

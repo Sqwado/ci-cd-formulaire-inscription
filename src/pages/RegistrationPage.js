@@ -1,107 +1,33 @@
-import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import NavLink from '../components/NavLink/NavLink';
+import PageNavigation from '../components/PageNavigation/PageNavigation';
+import RegistrationForm from '../components/RegistrationForm/RegistrationForm';
+import Toast from '../components/Toast/Toast';
+import { DOCS_URL } from '../constants/navigation';
+import { useRegistrationForm } from '../hooks/useRegistrationForm';
+import { useToast } from '../hooks/useToast';
+import { getRegistrations, handleSubmit } from '../module/module';
 import './RegistrationPage.css';
-import {
-  getRegistrations,
-  handleSubmit,
-  validateCodePostal,
-  validateDateOfBirth,
-  validateEmail,
-  validateName,
-  validatePrenom,
-  validateVille
-} from '../module/module';
-
-const TOAST_DURATION = 3000;
 
 function RegistrationPage() {
   const navigate = useNavigate();
-  const [toastMessage, setToastMessage] = useState('');
-  const [fieldErrors, setFieldErrors] = useState({});
-  const [formValues, setFormValues] = useState({
-    nom: '',
-    prenom: '',
-    email: '',
-    dateOfBirth: '',
-    ville: '',
-    codePostal: ''
-  });
-
-  useEffect(() => {
-    if (!toastMessage) {
-      return undefined;
-    }
-
-    const timeoutId = setTimeout(() => {
-      setToastMessage('');
-    }, TOAST_DURATION);
-
-    return () => clearTimeout(timeoutId);
-  }, [toastMessage]);
-
-  const validateField = (name, value) => {
-    try {
-      switch (name) {
-        case 'nom':
-          validateName(value);
-          break;
-        case 'prenom':
-          validatePrenom(value);
-          break;
-        case 'email':
-          validateEmail(value);
-          break;
-        case 'dateOfBirth':
-          validateDateOfBirth(value);
-          break;
-        case 'ville':
-          validateVille(value);
-          break;
-        case 'codePostal':
-          validateCodePostal(value);
-          break;
-        default:
-          break;
-      }
-      return '';
-    } catch (error) {
-      return error.message;
-    }
-  };
-
-  const validateAllFields = (values) => {
-    const errors = {};
-    Object.keys(values).forEach((fieldName) => {
-      const error = validateField(fieldName, values[fieldName]);
-      if (error) {
-        errors[fieldName] = error;
-      }
-    });
-    return errors;
-  };
-
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setFormValues((prevValues) => {
-      const nextValues = {
-        ...prevValues,
-        [name]: value
-      };
-      setFieldErrors((prevErrors) => ({
-        ...prevErrors,
-        [name]: validateField(name, value)
-      }));
-      return nextValues;
-    });
-  };
+  const {
+    formValues,
+    fieldErrors,
+    setFieldErrors,
+    onChange,
+    validateAllFields,
+    isSubmitDisabled
+  } = useRegistrationForm();
+  const { toastMessage, toastType, showToast } = useToast();
 
   const onSubmit = (e) => {
-    const nextErrors = validateAllFields(formValues);
+    const nextErrors = validateAllFields();
     setFieldErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
       e.preventDefault();
-      setToastMessage('Veuillez corriger les erreurs du formulaire.');
+      showToast('Veuillez corriger les erreurs du formulaire.', 'error');
       return;
     }
 
@@ -111,74 +37,37 @@ function RegistrationPage() {
       navigate('/list', { state: { highlightIndex } });
     } catch (error) {
       e.preventDefault();
-      setToastMessage(error.message || 'Une erreur est survenue');
+      showToast(error.message || 'Une erreur est survenue', 'error');
     }
   };
-
-  const isFormValid = () => {
-    const hasEmptyField = Object.values(formValues).some((value) => !value.trim());
-    if (hasEmptyField) {
-      return false;
-    }
-    return Object.keys(validateAllFields(formValues)).length === 0;
-  };
-
-  const isSubmitDisabled = !isFormValid();
 
   return (
-    <>
-      <form className="register-form" onSubmit={onSubmit}>
-        <h1>Inscription</h1>
-        <p>Remplissez le formulaire pour enregistrer vos informations.</p>
+    <div className="registration-page" data-testid="registration-page">
+      <RegistrationForm
+        formValues={formValues}
+        fieldErrors={fieldErrors}
+        isSubmitDisabled={isSubmitDisabled}
+        onChange={onChange}
+        onSubmit={onSubmit}
+      />
 
-        <div className="field-grid">
-          <label>
-            Nom
-            <input type="text" data-testid="nom" name="nom" placeholder="Dupont" value={formValues.nom} onChange={onChange} />
-            {fieldErrors.nom && <span className="field-error" data-testid="nom-error">{fieldErrors.nom}</span>}
-          </label>
+      <PageNavigation variant="below-form" ariaLabel="Navigation inscription">
+        <NavLink to="/" testId="go-to-home">
+          Accueil
+        </NavLink>
+        <NavLink to="/list" testId="go-to-list">
+          Liste des inscrits
+        </NavLink>
+        <NavLink to="/legacy" testId="go-to-legacy">
+          Mode legacy
+        </NavLink>
+        <NavLink href={DOCS_URL} external testId="go-to-docs">
+          Documentation
+        </NavLink>
+      </PageNavigation>
 
-          <label>
-            Prenom
-            <input type="text" data-testid="prenom" name="prenom" placeholder="Jean" value={formValues.prenom} onChange={onChange} />
-            {fieldErrors.prenom && <span className="field-error" data-testid="prenom-error">{fieldErrors.prenom}</span>}
-          </label>
-
-          <label>
-            Email
-            <input type="email" data-testid="email" name="email" placeholder="jean.dupont@email.com" value={formValues.email} onChange={onChange} />
-            {fieldErrors.email && <span className="field-error" data-testid="email-error">{fieldErrors.email}</span>}
-          </label>
-
-          <label>
-            Date de naissance
-            <input type="text" data-testid="dateDeNaissance" name="dateOfBirth" placeholder="YYYY-MM-DD" value={formValues.dateOfBirth} onChange={onChange} />
-            {fieldErrors.dateOfBirth && <span className="field-error" data-testid="dateOfBirth-error">{fieldErrors.dateOfBirth}</span>}
-          </label>
-
-          <label>
-            Ville
-            <input type="text" data-testid="ville" name="ville" placeholder="Paris" value={formValues.ville} onChange={onChange} />
-            {fieldErrors.ville && <span className="field-error" data-testid="ville-error">{fieldErrors.ville}</span>}
-          </label>
-
-          <label>
-            Code postal
-            <input type="text" data-testid="codePostal" name="codePostal" placeholder="75001" value={formValues.codePostal} onChange={onChange} />
-            {fieldErrors.codePostal && <span className="field-error" data-testid="codePostal-error">{fieldErrors.codePostal}</span>}
-          </label>
-        </div>
-
-        <button type="submit" data-testid="submit" disabled={isSubmitDisabled}>Enregistrer</button>
-        <Link to="/list" data-testid="go-to-list">Voir la liste des inscrits</Link>
-      </form>
-
-      {toastMessage && (
-        <div className="toast toast-error" role="alert" data-testid="error-toast">
-          {toastMessage}
-        </div>
-      )}
-    </>
+      <Toast message={toastMessage} type={toastType} />
+    </div>
   );
 }
 

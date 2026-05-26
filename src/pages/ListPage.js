@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import './ListPage.css';
+import { useLocation } from 'react-router-dom';
+import NavLink from '../components/NavLink/NavLink';
+import PageNavigation from '../components/PageNavigation/PageNavigation';
+import RegistrationsList from '../components/RegistrationsList/RegistrationsList';
+import Toast from '../components/Toast/Toast';
+import { DOCS_URL } from '../constants/navigation';
+import { useToast } from '../hooks/useToast';
 import { getRegistrations } from '../module/module';
+import './ListPage.css';
 
-const TOAST_DURATION = 3000;
 const HIGHLIGHT_DURATION = 4000;
 
 function ListPage() {
   const location = useLocation();
-  const [toastMessage, setToastMessage] = useState('');
+  const { toastMessage, toastType, showToast } = useToast();
   const [registrations, setRegistrations] = useState([]);
   const [highlightedIndex, setHighlightedIndex] = useState(
     () => (typeof location.state?.highlightIndex === 'number' ? location.state.highlightIndex : null)
@@ -18,21 +23,9 @@ function ListPage() {
     try {
       setRegistrations(getRegistrations());
     } catch (error) {
-      setToastMessage(error.message || 'Une erreur est survenue');
+      showToast(error.message || 'Une erreur est survenue', 'error');
     }
   }, []);
-
-  useEffect(() => {
-    if (!toastMessage) {
-      return undefined;
-    }
-
-    const timeoutId = setTimeout(() => {
-      setToastMessage('');
-    }, TOAST_DURATION);
-
-    return () => clearTimeout(timeoutId);
-  }, [toastMessage]);
 
   useEffect(() => {
     if (highlightedIndex === null || registrations.length === 0) {
@@ -54,36 +47,34 @@ function ListPage() {
   }, [highlightedIndex, registrations]);
 
   return (
-    <section className="registrations-section" data-testid="list-page">
-      <h1>Liste des inscrits</h1>
-      {registrations.length === 0 ? (
-        <p data-testid="no-registrations">Aucun inscrit pour le moment.</p>
-      ) : (
-        <ul data-testid="registrations-list">
-          {registrations.map((registration, index) => (
-            <li
-              key={`${registration.email}-${index}`}
-              data-testid="registration-item"
-              data-highlight-index={index}
-              className={
-                index === highlightedIndex ? 'registration-item-highlight' : undefined
-              }
-            >
-              {registration.prenom} {registration.nom} - {registration.email} - {registration.dateOfBirth} - {registration.ville} ({registration.codePostal})
-            </li>
-          ))}
-        </ul>
-      )}
-      <Link to="/register" data-testid="go-to-registration">
-        Nouvelle inscription
-      </Link>
+    <>
+      <div className="list-page" data-testid="list-page">
+        <RegistrationsList
+          registrations={registrations}
+          title="Liste des inscrits"
+          headingLevel="h1"
+          highlightedIndex={highlightedIndex}
+          testId="list-registrations-section"
+        />
 
-      {toastMessage && (
-        <div className="toast toast-error" role="alert" data-testid="error-toast">
-          {toastMessage}
-        </div>
-      )}
-    </section>
+        <PageNavigation variant="card" ariaLabel="Navigation liste">
+          <NavLink to="/" testId="go-to-home">
+            Accueil
+          </NavLink>
+          <NavLink to="/register" variant="primary" testId="go-to-registration">
+            Nouvelle inscription
+          </NavLink>
+          <NavLink to="/legacy" testId="go-to-legacy">
+            Mode legacy
+          </NavLink>
+          <NavLink href={DOCS_URL} external testId="go-to-docs">
+            Documentation
+          </NavLink>
+        </PageNavigation>
+      </div>
+
+      <Toast message={toastMessage} type={toastType} />
+    </>
   );
 }
 

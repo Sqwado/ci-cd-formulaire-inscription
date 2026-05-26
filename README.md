@@ -1,12 +1,25 @@
 # Projet React - Formulaire d'inscription
 
+[![codecov](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription/graph/badge.svg)](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription)
+
 Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, sauvegarde des inscriptions valides dans le `localStorage` et affichage de la liste des inscrits.
 
-## Pre-requis
+## Liens utiles
+
+| Ressource | URL |
+|-----------|-----|
+| Dépôt GitHub | https://github.com/sqwado/ci-cd-formulaire-inscription |
+| Application déployée | https://sqwado.github.io/ci-cd-formulaire-inscription |
+| Mode legacy (formulaire + liste) | https://sqwado.github.io/ci-cd-formulaire-inscription/legacy |
+| Documentation JSDoc | https://sqwado.github.io/ci-cd-formulaire-inscription/docs/index.html |
+| Package npm | https://www.npmjs.com/package/ci-cd-formulaire-inscription |
+| Couverture Codecov | https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription |
+
+## Prérequis
 
 - Git
-- Node.js (version 18 ou superieure recommandee)
-- npm (installe avec Node.js)
+- Node.js (version 18 ou supérieure recommandée)
+- npm (installé avec Node.js)
 
 ## Cloner et installer le projet
 
@@ -16,7 +29,7 @@ cd ci-cd-formulaire-inscription
 npm install
 ```
 
-## Lancer et ouvrir l'application
+## Lancer l'application
 
 ```bash
 npm start
@@ -24,90 +37,184 @@ npm start
 
 Puis ouvrir `http://localhost:3000` dans le navigateur.
 
-## Executer les tests
+Depuis l'accueil, vous pouvez accéder à :
+
+- **Inscription** (`/register`) : formulaire avec redirection vers la liste après succès
+- **Liste** (`/list`) : consultations des inscrits
+- **Mode legacy** (`/legacy`) : formulaire et liste sur une même page, conforme à l'énoncé initial (toast de succès, vidage des champs)
+- **Documentation** : lien vers la JSDoc générée (`/docs/index.html`)
+
+## Exécuter les tests
 
 ```bash
 npm run test
 ```
 
+La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
+
+### Résultat des tests
+
+Dernière exécution locale (`npm run test`) :
+
+```text
+$ npm run test
+
+> ci-cd-formulaire-inscription@0.3.3 test
+> react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js --collectCoverageFrom=!src/test/**
+
+ PASS  src/components/RegistrationsList/RegistrationsList.test.js
+ PASS  src/pages/HomePage.test.js
+ PASS  src/components/Toast/Toast.test.js
+ PASS  src/hooks/useToast.test.js
+ PASS  src/hooks/useRegistrationForm.test.js
+ PASS  src/module/module.test.js
+ PASS  src/components/FormField/FormField.test.js                                                                                 
+ PASS  src/components/NavLink/NavLink.test.js
+ PASS  src/components/PageNavigation/PageNavigation.test.js
+ PASS  src/App.test.js
+ PASS  src/pages/LegacyPage.test.js
+ PASS  src/pages/ListPage.test.js
+ PASS  src/pages/RegistrationPage.test.js                                                                                         
+----------------------------------|---------|----------|---------|---------|-------------------
+File                              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+----------------------------------|---------|----------|---------|---------|-------------------
+All files                         |     100 |      100 |     100 |     100 |                   
+ src                              |     100 |      100 |     100 |     100 |                   
+  App.js                          |     100 |      100 |     100 |     100 |                   
+ src/components/FormField         |     100 |      100 |     100 |     100 |                   
+  FormField.js                    |     100 |      100 |     100 |     100 |                   
+ src/components/NavLink           |     100 |      100 |     100 |     100 |                   
+  NavLink.js                      |     100 |      100 |     100 |     100 |                   
+ src/components/PageNavigation    |     100 |      100 |     100 |     100 |                   
+  PageNavigation.js               |     100 |      100 |     100 |     100 |                   
+ src/components/RegistrationForm  |     100 |      100 |     100 |     100 |                  
+  RegistrationForm.js             |     100 |      100 |     100 |     100 |                  
+ src/components/RegistrationsList |     100 |      100 |     100 |     100 |                  
+  RegistrationsList.js            |     100 |      100 |     100 |     100 |                  
+ src/components/Toast             |     100 |      100 |     100 |     100 |                  
+  Toast.js                        |     100 |      100 |     100 |     100 |                  
+ src/constants                    |     100 |      100 |     100 |     100 |                  
+  formFields.js                   |     100 |      100 |     100 |     100 |                  
+  navigation.js                   |     100 |      100 |     100 |     100 |                  
+ src/hooks                        |     100 |      100 |     100 |     100 |                  
+  useRegistrationForm.js          |     100 |      100 |     100 |     100 |                  
+  useToast.js                     |     100 |      100 |     100 |     100 |                  
+ src/module                       |     100 |      100 |     100 |     100 |                  
+  module.js                       |     100 |      100 |     100 |     100 |                  
+ src/pages                        |     100 |      100 |     100 |     100 |                  
+  HomePage.js                     |     100 |      100 |     100 |     100 |                  
+  LegacyPage.js                   |     100 |      100 |     100 |     100 |                  
+  ListPage.js                     |     100 |      100 |     100 |     100 |                  
+  RegistrationPage.js             |     100 |      100 |     100 |     100 |                  
+----------------------------------|---------|----------|---------|---------|-------------------
+
+Test Suites: 13 passed, 13 total
+Tests:       124 passed, 124 total
+Snapshots:   0 total
+Time:        2.64 s
+Ran all test suites.
+```
+
+Couverture : **100 %** (statements, branches, functions, lines) sur les fichiers inclus.
+
+## Architecture
+
+```
+src/
+├── module/module.js          # Validations et accès localStorage
+├── constants/formFields.js   # Définition des champs du formulaire
+├── hooks/
+│   ├── useRegistrationForm.js
+│   └── useToast.js
+├── components/
+│   ├── FormField/
+│   ├── NavLink/
+│   ├── PageNavigation/
+│   ├── RegistrationForm/
+│   ├── RegistrationsList/
+│   └── Toast/
+└── pages/
+    ├── HomePage.js
+    ├── RegistrationPage.js
+    ├── ListPage.js
+    └── LegacyPage.js         # Formulaire + liste (comportement énoncé)
+```
+
 ## Description fonctionnelle
 
-Cette application React permet a un utilisateur de s'inscrire avec un formulaire contenant :
+L'utilisateur peut s'inscrire avec :
 
 - nom
-- prenom
+- prénom
 - email
 - date de naissance
 - ville
 - code postal
 
-Les donnees valides sont sauvegardees dans le `localStorage` du navigateur sous la cle `registrations` (tableau d'inscriptions).
+Les données valides sont sauvegardées dans le `localStorage` sous la clé `registrations`.
 
-## Regles de validation
+### Mode legacy (`/legacy`)
 
-Les controles sont centralises dans `src/module/module.js`.
+Comportement conforme à l'énoncé :
 
-- Le nom, le prenom et la ville doivent contenir uniquement des lettres, avec prise en charge des espaces, apostrophes et tirets.
-- L'email doit respecter un format standard `utilisateur@domaine.extension`.
-- La date de naissance doit etre une vraie date au format `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY` ou `DD-MM-YYYY`.
-- L'utilisateur doit avoir au moins 18 ans.
-- Le code postal doit correspondre a un code postal francais metropolitain ou d'outre-mer valide.
+- bouton désactivé tant que les champs ne sont pas tous remplis et valides ;
+- en cas d'erreur : toaster d'erreur + message rouge sous chaque champ invalide ;
+- en cas de succès : sauvegarde, **toaster de succès**, **vidage des champs**, mise à jour de la liste sur la même page.
 
-## Fonctionnement
+### Mode router (`/register` + `/list`)
 
-Au chargement, l'application tente de recuperer les donnees deja sauvegardees dans le `localStorage`.
+Variante avec pages séparées : après une inscription valide, redirection vers la liste avec mise en évidence de la nouvelle ligne.
 
-Lors de l'envoi du formulaire :
+## Règles de validation
 
-- les donnees sont lues avec `FormData` ;
-- chaque champ est valide par les fonctions du module ;
-- si tout est valide, l'inscription est ajoutee a la liste `registrations` dans le `localStorage` ;
-- un toaster de succes est affiche ;
-- les champs du formulaire sont ensuite vides ;
-- la liste des inscrits est mise a jour dans l'interface ;
-- en cas d'erreur, un message explicite est affiche sous chaque champ invalide (en rouge) et un toaster d'erreur global est affiche.
+Les contrôles sont centralisés dans `src/module/module.js`.
 
-## Tests et couverture
+- Nom, prénom et ville : lettres Unicode (accents, tréma), espaces, apostrophes et tirets ; pas de chiffres ni caractères spéciaux arbitraires.
+- Email : format `utilisateur@domaine.extension`.
+- Date de naissance : `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY` ou `DD-MM-YYYY`, avec au moins 18 ans.
+- Code postal : format français métropolitain ou DOM-TOM.
 
-La commande de test lance Jest via `react-scripts`, avec la couverture Istanbul.
+## Tests
+
+| Type | Fichiers principaux |
+|------|---------------------|
+| **UT** | `src/module/module.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
+| **IT** | `src/pages/LegacyPage.test.js`, `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
+
+Cas couverts au minimum :
+
+- calcul de l'âge et majorité (`calculateAge`, `isAdult`) ;
+- format du code postal français ;
+- format des noms/prénoms (accents, tirets, apostrophes, rejets) ;
+- format de l'email ;
+- désactivation du bouton si champs incomplets ou invalides ;
+- sauvegarde `localStorage`, toaster de succès et champs vidés (mode legacy) ;
+- toaster d'erreur et messages sous les champs en rouge.
+
+## Documentation
+
+Génération locale de la JSDoc :
 
 ```bash
-npm run test
+npm run jsdoc
 ```
 
-Exemple de resultat console :
+Les fichiers sont produits dans `public/docs/` (ignorés par git, publiés sur GitHub Pages lors du build CI).
 
-```text
-$ npm run test
+## CI/CD
 
-> ci-cd-formulaire-inscription@0.1.0 test
-> react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js
+Le workflow GitHub Actions (`.github/workflows/build_test_react.yml`) sur la branche `master` :
 
- PASS  src/module/module.test.js                                                                                                  
- PASS  src/App.test.js
-------------|---------|----------|---------|---------|-------------------
-File        | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
-------------|---------|----------|---------|---------|-------------------
-All files   |     100 |      100 |     100 |     100 |                   
- src        |     100 |      100 |     100 |     100 |                   
-  App.js    |     100 |      100 |     100 |     100 |                   
- src/module |     100 |      100 |     100 |     100 |                   
-  module.js |     100 |      100 |     100 |     100 |                  
-------------|---------|----------|---------|---------|-------------------
+1. installe les dépendances et exécute les tests ;
+2. envoie la couverture à Codecov ;
+3. publie le package npm si la version locale est nouvelle ;
+4. déploie l'application sur GitHub Pages.
 
-Test Suites: 2 passed, 2 total
-Tests:       74 passed, 74 total
-Snapshots:   0 total
-Time:        2.595 s
-Ran all test suites.
-```
+Les tests doivent réussir avant toute publication npm ou déploiement Pages.
 
-Le script exclut `src/index.js` et `src/reportWebVitals.js` de la couverture, conformement a l'enonce.
+## Historique des versions npm
 
-Les tests couvrent :
+Le pipeline publie automatiquement lorsqu'une nouvelle version est détectée dans `package.json` :
 
-- les fonctions unitaires de validation dans `src/module/module.test.js` ;
-- le rendu et les interactions du composant React dans `src/App.test.js` ;
-- le parcours d'integration reel du formulaire jusqu'a la sauvegarde dans `localStorage`, le vidage des champs, l'affichage des erreurs par champ et la liste des inscrits dans `src/App.test.js`.
-
-La couverture attendue est de 100% sur les fichiers testes.
+- versions **patch** : `0.1.x`, `0.2.1`, `0.3.1`…
+- versions **minor** : `0.2.0`, `0.3.0`…

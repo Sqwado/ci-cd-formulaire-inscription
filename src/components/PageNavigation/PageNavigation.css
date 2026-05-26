@@ -1,0 +1,29 @@
+.page-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+}
+
+.page-navigation--card {
+  width: min(760px, 100%);
+  margin: 0 auto;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.page-navigation--below-form {
+  width: min(760px, 100%);
+  margin: 8px auto 0;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.page-navigation--on-dark {
+  padding-top: 8px;
+}

@@ -10,6 +10,6 @@
         "coverage"
     ],
     "opts": {
-        "destination": "./docs"
+        "destination": "./public/docs"
     }
 }
