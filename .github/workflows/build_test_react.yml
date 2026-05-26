@@ -41,7 +41,7 @@ jobs:
         run: |
           git config --global user.email "${{ secrets.USER_EMAIL }}"
           git config --global user.name "${{ secrets.USER_NAME }}"
-          npm run build-npm
+          npm run build-npm-ci
           npm version patch
           npm publish
           git add .
