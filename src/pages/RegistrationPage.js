@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import './RegistrationPage.css';
 import {
   handleSubmit,
@@ -14,8 +14,8 @@ import {
 const TOAST_DURATION = 3000;
 
 function RegistrationPage() {
+  const navigate = useNavigate();
   const [toastMessage, setToastMessage] = useState('');
-  const [toastType, setToastType] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [formValues, setFormValues] = useState({
     nom: '',
@@ -33,7 +33,6 @@ function RegistrationPage() {
 
     const timeoutId = setTimeout(() => {
       setToastMessage('');
-      setToastType('');
     }, TOAST_DURATION);
 
     return () => clearTimeout(timeoutId);
@@ -101,27 +100,15 @@ function RegistrationPage() {
 
     if (Object.keys(nextErrors).length > 0) {
       e.preventDefault();
-      setToastType('error');
       setToastMessage('Veuillez corriger les erreurs du formulaire.');
       return;
     }
 
     try {
-      handleSubmit(e);
-      setFormValues({
-        nom: '',
-        prenom: '',
-        email: '',
-        dateOfBirth: '',
-        ville: '',
-        codePostal: ''
-      });
-      setFieldErrors({});
-      setToastType('success');
-      setToastMessage('Formulaire valide et enregistre.');
+      const savedRegistration = handleSubmit(e);
+      navigate('/list', { state: { highlightEmail: savedRegistration.email } });
     } catch (error) {
       e.preventDefault();
-      setToastType('error');
       setToastMessage(error.message || 'Une erreur est survenue');
     }
   };
@@ -185,11 +172,7 @@ function RegistrationPage() {
       </form>
 
       {toastMessage && (
-        <div
-          className={`toast ${toastType === 'success' ? 'toast-success' : 'toast-error'}`}
-          role="alert"
-          data-testid={toastType === 'success' ? 'success-toast' : 'error-toast'}
-        >
+        <div className="toast toast-error" role="alert" data-testid="error-toast">
           {toastMessage}
         </div>
       )}
