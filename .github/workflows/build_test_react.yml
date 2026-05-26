@@ -21,9 +21,9 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v2
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org
@@ -37,31 +37,31 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      - name: Authenticate with npm
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - name: build and publish package on NPM
         if: github.event_name == 'push'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
-          git config --global user.email "${{ secrets.USER_EMAIL }}"
-          git config --global user.name "${{ secrets.USER_NAME }}"
+          git config --global user.email ${{ secrets.USER_EMAIL }}
+          git config --global user.name ${{ secrets.USER_NAME }}
           PACKAGE_NAME=$(node -p "require('./package.json').name")
           LOCAL_VERSION=$(node -p "require('./package.json').version")
           NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "")
 
           echo "Version locale : $LOCAL_VERSION"
-          echo "Version NPM    : ${NPM_VERSION:-non publiee}"
+          echo "Version NPM    : ${NPM_VERSION:-non publiée}"
 
           npm run build-npm-ci
 
           if [ "$LOCAL_VERSION" != "$NPM_VERSION" ]; then
-            echo "Nouvelle version detectee, publication sur NPM..."
+            echo "Nouvelle version détectée, publication sur NPM..."
             npm publish
           else
-            echo "La version $LOCAL_VERSION est deja sur NPM, publication ignoree."
+            echo "La version $LOCAL_VERSION est déjà sur NPM, publication ignorée."
           fi
       - name: Setup Pages
         id: pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v3
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
@@ -71,7 +71,7 @@ jobs:
     # Deploy to the github-pages environment
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{steps.deployment.outputs.page_url}}
     runs-on: ubuntu-latest
 
     #Grant GITHUB_TOKEN the permissions required to make a page deployment
@@ -87,4 +87,3 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
-
