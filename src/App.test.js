@@ -2,6 +2,10 @@ import { render, screen, fireEvent, act } from '@testing-library/react';
 import App from './App';
 import * as moduleApi from './module/module';
 
+const goToRegistrationPage = () => {
+  fireEvent.click(screen.getByTestId('go-to-registration'));
+};
+
 const fillValidForm = () => {
   fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
   fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
@@ -19,8 +23,19 @@ afterEach(() => {
   jest.useRealTimers();
 });
 
+test('shows home page before registration form', () => {
+  render(<App />);
+  expect(screen.getByTestId('home-page')).toBeInTheDocument();
+  expect(screen.queryByTestId('submit')).not.toBeInTheDocument();
+
+  goToRegistrationPage();
+  expect(screen.queryByTestId('home-page')).not.toBeInTheDocument();
+  expect(screen.getByTestId('submit')).toBeInTheDocument();
+});
+
 test('disable submit button while required fields are not valid', () => {
   render(<App />);
+  goToRegistrationPage();
   expect(screen.getByTestId('submit')).toBeDisabled();
 
   fillValidForm();
@@ -32,6 +47,7 @@ test('disable submit button while required fields are not valid', () => {
 
 test('show field errors in red and global error toast on invalid submission', () => {
   render(<App />);
+  goToRegistrationPage();
 
   fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont' } });
   fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean' } });
@@ -53,6 +69,7 @@ test('show field errors in red and global error toast on invalid submission', ()
 
 test('submit valid form, show success toast, clear fields and save in registrations list', () => {
   render(<App />);
+  goToRegistrationPage();
   fillValidForm();
 
   fireEvent.click(screen.getByTestId('submit'));
@@ -80,6 +97,7 @@ test('submit valid form, show success toast, clear fields and save in registrati
 test('hide success toast after timeout', () => {
   jest.useFakeTimers();
   render(<App />);
+  goToRegistrationPage();
   fillValidForm();
 
   fireEvent.click(screen.getByTestId('submit'));
@@ -108,6 +126,7 @@ test('load and display previously saved registrations list', () => {
   );
 
   render(<App />);
+  goToRegistrationPage();
 
   expect(screen.queryByTestId('no-registrations')).not.toBeInTheDocument();
   expect(screen.getByTestId('registration-item')).toHaveTextContent('Alice Martin');
@@ -115,12 +134,14 @@ test('load and display previously saved registrations list', () => {
 
 test('shows empty registrations message by default', () => {
   render(<App />);
+  goToRegistrationPage();
   expect(screen.getByTestId('no-registrations')).toBeInTheDocument();
 });
 
 test('show fallback error toast when localStorage parsing fails on load', () => {
   localStorage.setItem('registrations', '{invalid json');
   render(<App />);
+  goToRegistrationPage();
   expect(screen.getByTestId('error-toast')).toHaveTextContent('unable to parse saved registrations');
 });
 
@@ -130,12 +151,14 @@ test('show fallback error toast when loading registrations throws without messag
   });
 
   render(<App />);
+  goToRegistrationPage();
   expect(screen.getByTestId('error-toast')).toHaveTextContent('Une erreur est survenue');
   registrationsSpy.mockRestore();
 });
 
 test('handles unknown field name change without crashing', () => {
   render(<App />);
+  goToRegistrationPage();
   fireEvent.change(screen.getByTestId('nom'), { target: { name: 'unknownField', value: 'foo' } });
   expect(screen.getByTestId('submit')).toBeDisabled();
 });
@@ -146,6 +169,7 @@ test('show error toast when handleSubmit throws with message', () => {
   });
 
   render(<App />);
+  goToRegistrationPage();
   fillValidForm();
   fireEvent.click(screen.getByTestId('submit'));
 
@@ -159,6 +183,7 @@ test('show fallback error toast when handleSubmit throws without message', () =>
   });
 
   render(<App />);
+  goToRegistrationPage();
   fillValidForm();
   fireEvent.click(screen.getByTestId('submit'));
 
@@ -168,6 +193,7 @@ test('show fallback error toast when handleSubmit throws without message', () =>
 
 test('display nom and prenom field errors for invalid values', () => {
   render(<App />);
+  goToRegistrationPage();
 
   fireEvent.change(screen.getByTestId('nom'), { target: { value: 'Dupont1' } });
   fireEvent.change(screen.getByTestId('prenom'), { target: { value: 'Jean2' } });
