@@ -37,19 +37,28 @@ jobs:
         uses: codecov/codecov-action@v5
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-
+      - name: Authenticate with npm
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
       - name: build and publish package on NPM
+        if: github.event_name == 'push'
         run: |
-          git config --global user.email "mateoluque@aol.com"
-          git config --global user.name "Sqwado"
+          git config --global user.email ${{ secrets.USER_EMAIL }}
+          git config --global user.name ${{ secrets.USER_NAME }}
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          LOCAL_VERSION=$(node -p "require('./package.json').version")
+          NPM_VERSION=$(npm view "$PACKAGE_NAME" version 2>/dev/null || echo "")
+
+          echo "Version locale : $LOCAL_VERSION"
+          echo "Version NPM    : ${NPM_VERSION:-non publiée}"
+
           npm run build-npm-ci
-          npm version patch
-          npm publish
-          git add .
-          git commit -m "updated version"
-          git push
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+          if [ "$LOCAL_VERSION" != "$NPM_VERSION" ]; then
+            echo "Nouvelle version détectée, publication sur NPM..."
+            npm publish
+          else
+            echo "La version $LOCAL_VERSION est déjà sur NPM, publication ignorée."
+          fi
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v3
