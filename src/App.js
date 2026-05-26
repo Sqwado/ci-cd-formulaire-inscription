@@ -1,18 +1,17 @@
-import { useState } from 'react';
+import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import HomePage from './pages/HomePage';
+import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
 
 function App() {
-  const [showRegistration, setShowRegistration] = useState(false);
-
   return (
     <div className="App">
-      {showRegistration ? (
-        <RegistrationPage />
-      ) : (
-        <HomePage onStart={() => setShowRegistration(true)} />
-      )}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/register" element={<RegistrationPage />} />
+        <Route path="/list" element={<ListPage />} />
+      </Routes>
     </div>
   );
 }

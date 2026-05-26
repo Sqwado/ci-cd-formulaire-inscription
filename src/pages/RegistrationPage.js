@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import './RegistrationPage.css';
 import {
-  getRegistrations,
   handleSubmit,
   validateCodePostal,
   validateDateOfBirth,
@@ -15,7 +16,6 @@ const TOAST_DURATION = 3000;
 function RegistrationPage() {
   const [toastMessage, setToastMessage] = useState('');
   const [toastType, setToastType] = useState('');
-  const [registrations, setRegistrations] = useState([]);
   const [fieldErrors, setFieldErrors] = useState({});
   const [formValues, setFormValues] = useState({
     nom: '',
@@ -25,15 +25,6 @@ function RegistrationPage() {
     ville: '',
     codePostal: ''
   });
-
-  useEffect(() => {
-    try {
-      setRegistrations(getRegistrations());
-    } catch (error) {
-      setToastType('error');
-      setToastMessage(error.message || 'Une erreur est survenue');
-    }
-  }, []);
 
   useEffect(() => {
     if (!toastMessage) {
@@ -116,8 +107,7 @@ function RegistrationPage() {
     }
 
     try {
-      const savedRegistration = handleSubmit(e);
-      setRegistrations((prevRegistrations) => [...prevRegistrations, savedRegistration]);
+      handleSubmit(e);
       setFormValues({
         nom: '',
         prenom: '',
@@ -191,6 +181,7 @@ function RegistrationPage() {
         </div>
 
         <button type="submit" data-testid="submit" disabled={isSubmitDisabled}>Enregistrer</button>
+        <Link to="/list" data-testid="go-to-list">Voir la liste des inscrits</Link>
       </form>
 
       {toastMessage && (
@@ -202,21 +193,6 @@ function RegistrationPage() {
           {toastMessage}
         </div>
       )}
-
-      <section className="registrations-section">
-        <h2>Liste des inscrits</h2>
-        {registrations.length === 0 ? (
-          <p data-testid="no-registrations">Aucun inscrit pour le moment.</p>
-        ) : (
-          <ul data-testid="registrations-list">
-            {registrations.map((registration, index) => (
-              <li key={`${registration.email}-${index}`} data-testid="registration-item">
-                {registration.prenom} {registration.nom} - {registration.email} - {registration.dateOfBirth} - {registration.ville} ({registration.codePostal})
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </>
   );
 }
