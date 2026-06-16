@@ -7,7 +7,7 @@ import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
 
 function App() {
-  const port = process.env.REACT_APP_SERVER_PORT;
+  const port = process.env.REACT_APP_SERVER_PORT || '8000';
   const [usersCount, setUsersCount] = useState(0);
 
   useEffect(() => {

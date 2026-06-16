@@ -28,6 +28,8 @@ jobs:
           node-version: ${{ matrix.node-version }}
           registry-url: https://registry.npmjs.org
       - name: npm ci and test
+        env:
+          REACT_APP_SERVER_PORT: 8000
         run: |
           npm ci
           npm run jsdoc
