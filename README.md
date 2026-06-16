@@ -10,7 +10,6 @@ Application React de formulaire d'inscription avec validation des champs, affich
 |-----------|-----|
 | Dépôt GitHub | https://github.com/sqwado/ci-cd-formulaire-inscription |
 | Application déployée | https://sqwado.github.io/ci-cd-formulaire-inscription |
-| Mode legacy (formulaire + liste) | https://sqwado.github.io/ci-cd-formulaire-inscription/legacy |
 | Documentation JSDoc | https://sqwado.github.io/ci-cd-formulaire-inscription/docs/index.html |
 | Package npm | https://www.npmjs.com/package/ci-cd-formulaire-inscription |
 | Couverture Codecov | https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription |
@@ -41,7 +40,6 @@ Depuis l'accueil, vous pouvez accéder à :
 
 - **Inscription** (`/register`) : formulaire avec redirection vers la liste après succès
 - **Liste** (`/list`) : consultations des inscrits
-- **Mode legacy** (`/legacy`) : formulaire et liste sur une même page, conforme à l'énoncé initial (toast de succès, vidage des champs)
 - **Documentation** : lien vers la JSDoc générée (`/docs/index.html`)
 
 ## Exécuter les tests
@@ -59,22 +57,21 @@ Dernière exécution locale (`npm run test`) :
 ```text
 $ npm run test
 
-> ci-cd-formulaire-inscription@0.3.3 test
+> ci-cd-formulaire-inscription@0.4.1 test
 > react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js --collectCoverageFrom=!src/test/**
 
+ PASS  src/module/module.test.js                                                                                                   
  PASS  src/components/RegistrationsList/RegistrationsList.test.js
- PASS  src/pages/HomePage.test.js
- PASS  src/components/Toast/Toast.test.js
  PASS  src/hooks/useToast.test.js
  PASS  src/hooks/useRegistrationForm.test.js
- PASS  src/module/module.test.js
- PASS  src/components/FormField/FormField.test.js                                                                                 
- PASS  src/components/NavLink/NavLink.test.js
+ PASS  src/pages/HomePage.test.js
+ PASS  src/components/Toast/Toast.test.js
  PASS  src/components/PageNavigation/PageNavigation.test.js
+ PASS  src/components/FormField/FormField.test.js
+ PASS  src/components/NavLink/NavLink.test.js
  PASS  src/App.test.js
- PASS  src/pages/LegacyPage.test.js
  PASS  src/pages/ListPage.test.js
- PASS  src/pages/RegistrationPage.test.js                                                                                         
+ PASS  src/pages/RegistrationPage.test.js
 ----------------------------------|---------|----------|---------|---------|-------------------
 File                              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
 ----------------------------------|---------|----------|---------|---------|-------------------
@@ -84,9 +81,9 @@ All files                         |     100 |      100 |     100 |     100 |
  src/components/FormField         |     100 |      100 |     100 |     100 |                   
   FormField.js                    |     100 |      100 |     100 |     100 |                   
  src/components/NavLink           |     100 |      100 |     100 |     100 |                   
-  NavLink.js                      |     100 |      100 |     100 |     100 |                   
- src/components/PageNavigation    |     100 |      100 |     100 |     100 |                   
-  PageNavigation.js               |     100 |      100 |     100 |     100 |                   
+  NavLink.js                      |     100 |      100 |     100 |     100 |                  
+ src/components/PageNavigation    |     100 |      100 |     100 |     100 |                  
+  PageNavigation.js               |     100 |      100 |     100 |     100 |                  
  src/components/RegistrationForm  |     100 |      100 |     100 |     100 |                  
   RegistrationForm.js             |     100 |      100 |     100 |     100 |                  
  src/components/RegistrationsList |     100 |      100 |     100 |     100 |                  
@@ -103,15 +100,14 @@ All files                         |     100 |      100 |     100 |     100 |
   module.js                       |     100 |      100 |     100 |     100 |                  
  src/pages                        |     100 |      100 |     100 |     100 |                  
   HomePage.js                     |     100 |      100 |     100 |     100 |                  
-  LegacyPage.js                   |     100 |      100 |     100 |     100 |                  
   ListPage.js                     |     100 |      100 |     100 |     100 |                  
   RegistrationPage.js             |     100 |      100 |     100 |     100 |                  
 ----------------------------------|---------|----------|---------|---------|-------------------
 
-Test Suites: 13 passed, 13 total
-Tests:       124 passed, 124 total
+Test Suites: 12 passed, 12 total
+Tests:       116 passed, 116 total
 Snapshots:   0 total
-Time:        2.64 s
+Time:        6.096 s
 Ran all test suites.
 ```
 
@@ -137,7 +133,6 @@ src/
     ├── HomePage.js
     ├── RegistrationPage.js
     ├── ListPage.js
-    └── LegacyPage.js         # Formulaire + liste (comportement énoncé)
 ```
 
 ## Description fonctionnelle
@@ -152,14 +147,6 @@ L'utilisateur peut s'inscrire avec :
 - code postal
 
 Les données valides sont sauvegardées dans le `localStorage` sous la clé `registrations`.
-
-### Mode legacy (`/legacy`)
-
-Comportement conforme à l'énoncé :
-
-- bouton désactivé tant que les champs ne sont pas tous remplis et valides ;
-- en cas d'erreur : toaster d'erreur + message rouge sous chaque champ invalide ;
-- en cas de succès : sauvegarde, **toaster de succès**, **vidage des champs**, mise à jour de la liste sur la même page.
 
 ### Mode router (`/register` + `/list`)
 
@@ -179,7 +166,7 @@ Les contrôles sont centralisés dans `src/module/module.js`.
 | Type | Fichiers principaux |
 |------|---------------------|
 | **UT** | `src/module/module.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
-| **IT** | `src/pages/LegacyPage.test.js`, `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
+| **IT** | `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
 
 Cas couverts au minimum :
 
@@ -188,7 +175,7 @@ Cas couverts au minimum :
 - format des noms/prénoms (accents, tirets, apostrophes, rejets) ;
 - format de l'email ;
 - désactivation du bouton si champs incomplets ou invalides ;
-- sauvegarde `localStorage`, toaster de succès et champs vidés (mode legacy) ;
+- sauvegarde `localStorage`, toaster de succès et champs vidés ;
 - toaster d'erreur et messages sous les champs en rouge.
 
 ## Documentation

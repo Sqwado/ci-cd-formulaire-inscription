@@ -1,0 +1,39 @@
+# Dépendances (installées dans l'image)
+node_modules
+
+# Secrets
+.env
+.env.*
+
+# Git & CI
+.git
+.github
+
+# Code source (monté via volumes)
+src
+public
+server
+react
+
+# Base de données (montée sur le service db)
+db
+
+# Artefacts de build & tests
+build
+dist
+coverage
+**/__pycache__
+*.pyc
+
+# Fichiers Docker & orchestration
+docker-compose.yml
+.dockerignore
+
+# Documentation & config hors build
+README.md
+DOCKER.md
+requirements.txt
+babel.config.js
+jsdoc.config.json
+.gitignore
+.npmignore

@@ -58,9 +58,6 @@ function RegistrationPage() {
         <NavLink to="/list" testId="go-to-list">
           Liste des inscrits
         </NavLink>
-        <NavLink to="/legacy" testId="go-to-legacy">
-          Mode legacy
-        </NavLink>
         <NavLink href={DOCS_URL} external testId="go-to-docs">
           Documentation
         </NavLink>

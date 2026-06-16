@@ -27,8 +27,7 @@ test('navigue vers le formulaire d inscription', () => {
   expect(screen.getByTestId('submit')).toBeInTheDocument();
 });
 
-test('affiche les liens vers le mode legacy et la documentation', () => {
+test('affiche les liens vers la documentation', () => {
   renderHomeWithRoutes('/');
-  expect(screen.getByTestId('go-to-legacy')).toHaveAttribute('href', '/legacy');
   expect(screen.getByTestId('go-to-docs')).toHaveAttribute('href', '/docs/index.html');
 });

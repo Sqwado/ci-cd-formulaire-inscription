@@ -1,8 +1,48 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
+import axios from 'axios';
 import App from './App';
 import { renderWithRouter } from './test/renderWithRouter';
 
-test('affiche la page d accueil sur la route racine', () => {
+jest.mock('axios');
+
+const mockGet = jest.fn();
+const mockUsers = [
+  ['Jean', 'Dupont'],
+  ['Marie', 'Martin'],
+];
+
+beforeEach(() => {
+  mockGet.mockResolvedValue({ data: { users: mockUsers } });
+  axios.create.mockReturnValue({ get: mockGet });
+});
+
+test('affiche la page d accueil et le nombre d utilisateurs retourne par l api', async () => {
   renderWithRouter(<App />);
+
   expect(screen.getByTestId('home-page')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByTestId('users-count')).toHaveTextContent(String(mockUsers.length));
+  });
+});
+
+test('appelle l api sur le port configure', async () => {
+  renderWithRouter(<App />);
+  await waitFor(() => {
+    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://localhost:8000' });
+    expect(mockGet).toHaveBeenCalledWith('/users');
+  });
+});
+
+test('affiche 0 utilisateur et log l erreur si l api echoue', async () => {
+  const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+  mockGet.mockRejectedValueOnce(new Error('API indisponible'));
+
+  renderWithRouter(<App />);
+
+  await waitFor(() => {
+    expect(screen.getByTestId('users-count')).toHaveTextContent('0');
+    expect(consoleSpy).toHaveBeenCalledWith(expect.any(Error));
+  });
+
+  consoleSpy.mockRestore();
 });

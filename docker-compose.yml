@@ -1,0 +1,103 @@
+services:
+  db:
+    image: mysql:9.7
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+    networks:
+      - db-network
+    volumes:
+      - db_data:/var/lib/mysql
+      - ./db:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: "mysql -uroot -p$$MYSQL_ROOT_PASSWORD -e 'SHOW DATABASES;' && mysql -uroot -p$$MYSQL_ROOT_PASSWORD $$MYSQL_DATABASE -e 'SHOW TABLES;'"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  adminer:
+    image: adminer
+    restart: unless-stopped
+    networks:
+      - db-network
+      - external-network
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: "curl -f http://localhost:8080"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  server:
+    build:
+      context: .
+      dockerfile: ./server/Dockerfile
+    image: server
+    restart: on-failure
+    ports:
+      - "8000:8000"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      PORT: 8000
+    volumes:
+      - ./server:/server
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - db-network
+      - external-network
+    healthcheck:
+      test: "curl -f http://localhost:8000/users"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    command: uvicorn serveur:app --host 0.0.0.0 --port 8000 --reload
+
+  react:
+    build:
+      context: .
+      dockerfile: ./react/DockerfileNodejs
+    image: react
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - PUBLIC_URL=/
+      - REACT_APP_SERVER_PORT=8000
+      - HOST=0.0.0.0
+      - WDS_SOCKET_PORT=0
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      server:
+        condition: service_healthy
+    networks:
+      - external-network
+    healthcheck:
+      test: "curl -f http://localhost:3000"
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 90s
+    command: npm start
+
+volumes:
+  db_data:
+
+networks:
+  db-network:
+    internal: true
+  external-network:

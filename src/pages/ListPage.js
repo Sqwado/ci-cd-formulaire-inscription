@@ -64,9 +64,6 @@ function ListPage() {
           <NavLink to="/register" variant="primary" testId="go-to-registration">
             Nouvelle inscription
           </NavLink>
-          <NavLink to="/legacy" testId="go-to-legacy">
-            Mode legacy
-          </NavLink>
           <NavLink href={DOCS_URL} external testId="go-to-docs">
             Documentation
           </NavLink>

@@ -9,3 +9,19 @@
   background: linear-gradient(135deg, #0f172a, #1e293b);
   color: #0f172a;
 }
+
+.App-header {
+  text-align: center;
+  color: #f8fafc;
+}
+
+.App-header h1 {
+  margin: 0 0 8px;
+  font-size: 1.75rem;
+}
+
+.App-header p {
+  margin: 0;
+  font-size: 1rem;
+  opacity: 0.9;
+}

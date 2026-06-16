@@ -18,9 +18,6 @@ function HomePage() {
         <NavLink to="/list" testId="go-to-list">
           Voir la liste des inscrits
         </NavLink>
-        <NavLink to="/legacy" testId="go-to-legacy">
-          Mode legacy (formulaire + liste)
-        </NavLink>
         <NavLink href={DOCS_URL} external testId="go-to-docs">
           Documentation
         </NavLink>
