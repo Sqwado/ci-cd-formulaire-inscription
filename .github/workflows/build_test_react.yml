@@ -124,7 +124,7 @@ jobs:
           fi
 
   deploy:
-    needs: [unit-test, e2e]
+    needs: [unit-test, e2e, publish-npm]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
