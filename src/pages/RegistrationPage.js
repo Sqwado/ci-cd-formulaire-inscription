@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { createRegistration } from '../api/api';
+import { createRegistration, fetchRegistrations, isOfflineMode } from '../api/api';
 import NavLink from '../components/NavLink/NavLink';
 import PageNavigation from '../components/PageNavigation/PageNavigation';
 import RegistrationForm from '../components/RegistrationForm/RegistrationForm';
@@ -35,7 +35,13 @@ function RegistrationPage() {
     try {
       const validatedData = validateFormData(new FormData(e.target));
       await createRegistration(validatedData);
-      const highlightIndex = getRegistrations().length - 1;
+      let highlightIndex;
+      if (isOfflineMode()) {
+        highlightIndex = getRegistrations().length - 1;
+      } else {
+        const registrations = await fetchRegistrations();
+        highlightIndex = registrations.length - 1;
+      }
       navigate('/list', { state: { highlightIndex } });
     } catch (error) {
       showToast(error.message || 'Une erreur est survenue', 'error');

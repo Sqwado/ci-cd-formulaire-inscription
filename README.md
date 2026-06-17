@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription/graph/badge.svg)](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription)
 
-Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, appels à une API REST tierce ([JSONPlaceholder](https://jsonplaceholder.typicode.com)) et cache local des inscriptions de session dans le `localStorage`.
+Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, et persistance via une API REST FastAPI + MySQL (`http://localhost:8000`).
 
 ## Liens utiles
 
@@ -54,7 +54,7 @@ npm run test
 
 La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
 
-Couverture actuelle : **100 %** — **129 tests** répartis sur 13 suites.
+Couverture actuelle : **100 %** — **132 tests** répartis sur 13 suites.
 
 ### Tests end-to-end (Cypress)
 
@@ -71,8 +71,10 @@ Fichiers de tests :
 
 | Fichier | Scénario |
 |---------|----------|
-| `cypress/e2e/spec.cy.js` | Accueil avec 1 utilisateur mocké via `cy.intercept` |
-| `cypress/e2e/registration.cy.js` | Inscription valide et inscription avec erreurs |
+| `cypress/e2e/home.cy.js` | Accueil, compteur API, navigation vers la liste |
+| `cypress/e2e/registration.cy.js` | Inscription valide, formulaire invalide, validation des champs |
+| `cypress/e2e/list.cy.js` | Liste vide, affichage multiple, navigation |
+| `cypress/e2e/api-errors.cy.js` | Erreurs GET/POST API et toasts |
 
 Les tests E2E interceptent les appels `GET`/`POST` vers `**/users` (commande `mockUsersApi`) pour ne pas dépendre de l'API réelle en CI.
 
@@ -103,12 +105,12 @@ src/
 
 | Variable | Description | Défaut |
 |----------|-------------|--------|
-| `REACT_APP_API_URL` | URL de base de l'API REST | `https://jsonplaceholder.typicode.com` |
+| `REACT_APP_API_URL` | URL de base de l'API REST | `http://localhost:8000` |
 | `REACT_APP_OFFLINE_MODE` | `true` = localStorage uniquement (tests Jest des pages) | `false` |
 
 Copier `.env.example` en `.env` pour personnaliser. Jest charge `.jest/setEnvVars.js` via `setupFiles`.
 
-Le compteur d'inscrits affiché dans l'en-tête provient de `countUsers()` : fusion des utilisateurs distants et du cache local de session. La stack Docker (MySQL + API FastAPI) est **optionnelle** et indépendante du front React — voir [DOCKER.md](./DOCKER.md).
+Le compteur d'inscrits affiché dans l'en-tête provient de `countUsers()` via l'API. En mode offline (`REACT_APP_OFFLINE_MODE=true`), les données sont lues/écrites dans le `localStorage`. Voir [DOCKER.md](./DOCKER.md) pour lancer la stack complète.
 
 ## Description fonctionnelle
 
@@ -121,7 +123,7 @@ L'utilisateur peut s'inscrire avec :
 - ville
 - code postal
 
-Les données valides sont envoyées à l'API (`POST /users`) puis mises en cache dans le `localStorage` sous la clé `registrations` (JSONPlaceholder ne persiste pas les créations).
+Les données valides sont envoyées à l'API (`POST /users`) et persistées en base MySQL.
 
 ### Mode router (`/register` + `/list`)
 
@@ -142,7 +144,7 @@ Les contrôles sont centralisés dans `src/module/module.js`.
 |------|---------------------|
 | **UT** | `src/module/module.test.js`, `src/api/api.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
 | **IT** | `src/App.test.js`, `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
-| **E2E** | `cypress/e2e/spec.cy.js`, `cypress/e2e/registration.cy.js` |
+| **E2E** | `cypress/e2e/home.cy.js`, `cypress/e2e/registration.cy.js`, `cypress/e2e/list.cy.js`, `cypress/e2e/api-errors.cy.js` |
 
 Cas couverts au minimum :
 

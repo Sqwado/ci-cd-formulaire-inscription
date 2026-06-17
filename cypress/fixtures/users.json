@@ -1,0 +1,26 @@
+{
+  "validUser": {
+    "nom": "Dupont",
+    "prenom": "Jean",
+    "email": "jean.dupont@email.com",
+    "dateOfBirth": "1990-01-01",
+    "ville": "Paris",
+    "codePostal": "75001"
+  },
+  "secondUser": {
+    "nom": "Martin",
+    "prenom": "Alice",
+    "email": "alice.martin@email.com",
+    "dateOfBirth": "1991-04-20",
+    "ville": "Lyon",
+    "codePostal": "69001"
+  },
+  "invalidUser": {
+    "nom": "Dupont1",
+    "prenom": "Jean2",
+    "email": "email-invalide",
+    "dateOfBirth": "2009-01-01",
+    "ville": "Paris9",
+    "codePostal": "7500"
+  }
+}

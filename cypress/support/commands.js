@@ -1,28 +1,19 @@
-const validUser = {
-  nom: 'Dupont',
-  prenom: 'Jean',
-  email: 'jean.dupont@email.com',
-  dateOfBirth: '1990-01-01',
-  ville: 'Paris',
-  codePostal: '75001'
-};
-
 const toApiUsers = (registrations) =>
   registrations.map((registration, index) => ({
     id: index + 1,
-    name: `${registration.prenom} ${registration.nom}`,
+    prenom: registration.prenom,
+    nom: registration.nom,
     email: registration.email,
-    address: {
-      city: registration.ville,
-      zipcode: registration.codePostal
-    }
+    dateOfBirth: registration.dateOfBirth,
+    ville: registration.ville,
+    codePostal: registration.codePostal
   }));
 
 Cypress.Commands.add('mockUsersApi', (registrations = []) => {
   let remoteUsers = toApiUsers(registrations);
 
   cy.intercept('GET', '**/users', (req) => {
-    req.reply({ statusCode: 200, body: remoteUsers });
+    req.reply({ statusCode: 200, body: { users: remoteUsers } });
   }).as('getUsers');
 
   cy.intercept('POST', '**/users', (req) => {
@@ -30,17 +21,29 @@ Cypress.Commands.add('mockUsersApi', (registrations = []) => {
       ...remoteUsers,
       {
         id: remoteUsers.length + 1,
-        name: req.body.name,
-        email: req.body.email,
-        address: req.body.address
+        ...req.body
       }
     ];
 
     req.reply({
       statusCode: 201,
-      body: { id: remoteUsers.length }
+      body: { id: remoteUsers.length, ...req.body }
     });
   }).as('createUser');
+});
+
+Cypress.Commands.add('mockUsersApiGetError', (statusCode = 503, message = 'API indisponible') => {
+  cy.intercept('GET', '**/users', {
+    statusCode,
+    body: { detail: message }
+  }).as('getUsersError');
+});
+
+Cypress.Commands.add('mockUsersApiPostError', (statusCode = 500, message = 'Erreur serveur') => {
+  cy.intercept('POST', '**/users', {
+    statusCode,
+    body: { detail: message }
+  }).as('createUserError');
 });
 
 Cypress.Commands.add('visitHomeWithRegistrations', (registrations = []) => {
@@ -52,27 +55,55 @@ Cypress.Commands.add('visitHomeWithRegistrations', (registrations = []) => {
   });
 });
 
+Cypress.Commands.add('visitListWithRegistrations', (registrations = []) => {
+  cy.visitHomeWithRegistrations(registrations);
+  cy.wait('@getUsers');
+  cy.goToList();
+  cy.wait('@getUsers');
+});
+
+Cypress.Commands.add('assertHomePage', () => {
+  cy.get('[data-testid="home-page"]').should('be.visible');
+  cy.contains('h1', 'Bienvenue').should('be.visible');
+  cy.get('[data-testid="go-to-registration"]').should('be.visible');
+  cy.get('[data-testid="go-to-list"]').should('be.visible');
+});
+
 Cypress.Commands.add('goToRegistrationForm', () => {
   cy.get('[data-testid="go-to-registration"]').click();
   cy.url().should('include', '/register');
+  cy.get('[data-testid="registration-page"]').should('be.visible');
+});
+
+Cypress.Commands.add('goToList', () => {
+  cy.get('[data-testid="go-to-list"]').click();
+  cy.url().should('include', '/list');
+  cy.get('[data-testid="list-page"]').should('be.visible');
+});
+
+Cypress.Commands.add('fillRegistrationForm', (user) => {
+  cy.get('[data-testid="nom"]').clear().type(user.nom);
+  cy.get('[data-testid="prenom"]').clear().type(user.prenom);
+  cy.get('[data-testid="email"]').clear().type(user.email);
+  cy.get('[data-testid="dateDeNaissance"]').clear().type(user.dateOfBirth);
+  cy.get('[data-testid="ville"]').clear().type(user.ville);
+  cy.get('[data-testid="codePostal"]').clear().type(user.codePostal);
 });
 
 Cypress.Commands.add('fillValidRegistrationForm', () => {
-  cy.get('[data-testid="nom"]').type(validUser.nom);
-  cy.get('[data-testid="prenom"]').type(validUser.prenom);
-  cy.get('[data-testid="email"]').type(validUser.email);
-  cy.get('[data-testid="dateDeNaissance"]').type(validUser.dateOfBirth);
-  cy.get('[data-testid="ville"]').type(validUser.ville);
-  cy.get('[data-testid="codePostal"]').type(validUser.codePostal);
+  cy.fixture('users').then(({ validUser }) => {
+    cy.fillRegistrationForm(validUser);
+  });
 });
 
 Cypress.Commands.add('fillInvalidRegistrationForm', () => {
-  cy.get('[data-testid="nom"]').type('Dupont');
-  cy.get('[data-testid="prenom"]').type('Jean');
-  cy.get('[data-testid="email"]').type('email-invalide');
-  cy.get('[data-testid="dateDeNaissance"]').type('2009-01-01');
-  cy.get('[data-testid="ville"]').type('Paris9');
-  cy.get('[data-testid="codePostal"]').type('7500');
+  cy.fixture('users').then(({ invalidUser }) => {
+    cy.fillRegistrationForm(invalidUser);
+  });
+});
+
+Cypress.Commands.add('submitRegistrationForm', () => {
+  cy.get('[data-testid="submit"]').click();
 });
 
 Cypress.Commands.add('goToHome', () => {
@@ -87,4 +118,39 @@ Cypress.Commands.add('assertRegisteredUsersCount', (count) => {
     'contain',
     'utilisateur(s) déjà inscrit(s)'
   );
+});
+
+Cypress.Commands.add('assertRegistrationListCount', (count) => {
+  if (count === 0) {
+    cy.get('[data-testid="no-registrations"]').should('be.visible');
+    cy.get('[data-testid="registration-item"]').should('not.exist');
+    return;
+  }
+
+  cy.get('[data-testid="no-registrations"]').should('not.exist');
+  cy.get('[data-testid="registration-item"]').should('have.length', count);
+});
+
+Cypress.Commands.add('assertRegistrationVisible', (user) => {
+  cy.get('[data-testid="registration-item"]')
+    .contains(`${user.prenom} ${user.nom}`)
+    .should('be.visible');
+  cy.get('[data-testid="registration-item"]').contains(user.email).should('be.visible');
+});
+
+Cypress.Commands.add('assertHighlightedRegistration', () => {
+  cy.get('[data-testid="registration-item"].registration-item-highlight').should('exist');
+});
+
+Cypress.Commands.add('assertCreateUserPayload', (expectedUser) => {
+  cy.wait('@createUser').then(({ request }) => {
+    expect(request.body).to.deep.equal({
+      prenom: expectedUser.prenom,
+      nom: expectedUser.nom,
+      email: expectedUser.email,
+      dateOfBirth: expectedUser.dateOfBirth,
+      ville: expectedUser.ville,
+      codePostal: expectedUser.codePostal
+    });
+  });
 });

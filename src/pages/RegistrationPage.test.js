@@ -89,6 +89,32 @@ test('soumet un formulaire valide, redirige vers la liste et met en evidence la 
   ]);
 });
 
+test('soumet un formulaire valide en mode api et redirige vers la liste', async () => {
+  process.env.REACT_APP_OFFLINE_MODE = 'false';
+  const registration = {
+    nom: 'Dupont',
+    prenom: 'Jean',
+    email: 'jean.dupont@email.com',
+    dateOfBirth: '1990-01-01',
+    ville: 'Paris',
+    codePostal: '75001'
+  };
+  const createSpy = jest.spyOn(api, 'createRegistration').mockResolvedValue(registration);
+  const fetchSpy = jest.spyOn(api, 'fetchRegistrations').mockResolvedValue([registration]);
+
+  renderRegistrationWithRoutes();
+  fillValidForm();
+  fireEvent.click(screen.getByTestId('submit'));
+
+  await waitFor(() => {
+    expect(screen.getByTestId('list-page')).toBeInTheDocument();
+    expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
+  });
+  expect(localStorage.getItem('registrations')).toBeNull();
+  createSpy.mockRestore();
+  fetchSpy.mockRestore();
+});
+
 test('gere un changement de champ inconnu sans planter', () => {
   renderWithRouter(<RegistrationPage />);
   fireEvent.change(screen.getByTestId('nom'), { target: { name: 'unknownField', value: 'foo' } });

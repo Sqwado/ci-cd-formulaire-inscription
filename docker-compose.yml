@@ -77,6 +77,8 @@ services:
       - PUBLIC_URL=/
       - HOST=0.0.0.0
       - WDS_SOCKET_PORT=0
+      - REACT_APP_API_URL=http://localhost:8000
+      - REACT_APP_OFFLINE_MODE=false
     volumes:
       - .:/app
       - /app/node_modules

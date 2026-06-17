@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { appendRegistration, getRegistrations } from '../module/module';
 
-const DEFAULT_API_URL = 'https://jsonplaceholder.typicode.com';
+const DEFAULT_API_URL = 'http://localhost:8000';
 
 function isOfflineMode() {
   return process.env.REACT_APP_OFFLINE_MODE === 'true';
@@ -13,28 +13,24 @@ function getApiClient() {
 }
 
 function mapApiUserToRegistration(user) {
-  const nameParts = (user.name || '').trim().split(/\s+/);
-  const prenom = nameParts[0] || '';
-  const nom = nameParts.slice(1).join(' ') || prenom;
-
   return {
-    nom,
-    prenom,
+    nom: user.nom || '',
+    prenom: user.prenom || '',
     email: user.email || '',
     dateOfBirth: user.dateOfBirth || '1990-01-01',
-    ville: user.address?.city || '',
-    codePostal: user.address?.zipcode || ''
+    ville: user.ville || '',
+    codePostal: user.codePostal || ''
   };
 }
 
 function mapRegistrationToApiPayload(registration) {
   return {
-    name: `${registration.prenom} ${registration.nom}`,
+    prenom: registration.prenom,
+    nom: registration.nom,
     email: registration.email,
-    address: {
-      city: registration.ville,
-      zipcode: registration.codePostal
-    }
+    dateOfBirth: registration.dateOfBirth,
+    ville: registration.ville,
+    codePostal: registration.codePostal
   };
 }
 
@@ -63,7 +59,7 @@ async function countUsers() {
 }
 
 /**
- * Fetch registrations from the API merged with local session data.
+ * Fetch registrations from the API or local storage in offline mode.
  *
  * @returns {Promise<Object[]>} Registrations list.
  */
@@ -73,19 +69,11 @@ async function fetchRegistrations() {
   }
 
   const response = await getApiClient().get('/users');
-  const remoteRegistrations = normalizeUsersResponse(response.data).map(mapApiUserToRegistration);
-  const localRegistrations = getRegistrations();
-  const localEmails = new Set(localRegistrations.map((registration) => registration.email));
-
-  const uniqueRemoteRegistrations = remoteRegistrations.filter(
-    (registration) => !localEmails.has(registration.email)
-  );
-
-  return [...uniqueRemoteRegistrations, ...localRegistrations];
+  return normalizeUsersResponse(response.data).map(mapApiUserToRegistration);
 }
 
 /**
- * Create a registration through the API and cache it locally.
+ * Create a registration through the API or local storage in offline mode.
  *
  * @param {Object} registration - Validated registration data.
  * @returns {Promise<Object>} Saved registration.
@@ -96,9 +84,8 @@ async function createRegistration(registration) {
     return registration;
   }
 
-  await getApiClient().post('/users', mapRegistrationToApiPayload(registration));
-  appendRegistration(registration);
-  return registration;
+  const response = await getApiClient().post('/users', mapRegistrationToApiPayload(registration));
+  return mapApiUserToRegistration(response.data);
 }
 
 export {

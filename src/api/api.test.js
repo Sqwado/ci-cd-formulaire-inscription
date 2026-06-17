@@ -6,20 +6,41 @@ jest.mock('axios');
 const mockGet = jest.fn();
 const mockPost = jest.fn();
 
+const sampleUser = {
+  id: 1,
+  prenom: 'Jean',
+  nom: 'Dupont',
+  email: 'jean@email.com',
+  dateOfBirth: '1990-01-01',
+  ville: 'Paris',
+  codePostal: '75001'
+};
+
+const sampleRegistration = {
+  nom: 'Dupont',
+  prenom: 'Jean',
+  email: 'jean.dupont@email.com',
+  dateOfBirth: '1990-01-01',
+  ville: 'Paris',
+  codePostal: '75001'
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   localStorage.clear();
   process.env.REACT_APP_OFFLINE_MODE = 'false';
-  process.env.REACT_APP_API_URL = 'https://jsonplaceholder.typicode.com';
+  process.env.REACT_APP_API_URL = 'http://localhost:8000';
   axios.create.mockReturnValue({ get: mockGet, post: mockPost });
 });
 
 describe('countUsers', () => {
   it('retourne le nombre d utilisateurs en cas de succes API', async () => {
-    mockGet.mockImplementationOnce(() => Promise.resolve({ data: [{ id: 1 }, { id: 2 }] }));
+    mockGet.mockImplementationOnce(() =>
+      Promise.resolve({ data: { users: [sampleUser, { ...sampleUser, id: 2 }] } })
+    );
 
     await expect(countUsers()).resolves.toBe(2);
-    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'https://jsonplaceholder.typicode.com' });
+    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://localhost:8000' });
     expect(mockGet).toHaveBeenCalledWith('/users');
   });
 
@@ -42,10 +63,16 @@ describe('countUsers', () => {
 
   it('accepte une reponse API encapsulee dans users', async () => {
     mockGet.mockImplementationOnce(() =>
-      Promise.resolve({ data: { users: [{ id: 1 }, { id: 2 }] } })
+      Promise.resolve({ data: { users: [sampleUser, { ...sampleUser, id: 2 }] } })
     );
 
     await expect(countUsers()).resolves.toBe(2);
+  });
+
+  it('accepte une reponse API sous forme de tableau', async () => {
+    mockGet.mockImplementationOnce(() => Promise.resolve({ data: [sampleUser] }));
+
+    await expect(countUsers()).resolves.toBe(1);
   });
 
   it('retourne 0 pour une reponse API invalide', async () => {
@@ -56,82 +83,58 @@ describe('countUsers', () => {
 
   it('utilise l url API par defaut si REACT_APP_API_URL est absente', async () => {
     delete process.env.REACT_APP_API_URL;
-    mockGet.mockImplementationOnce(() => Promise.resolve({ data: [] }));
+    mockGet.mockImplementationOnce(() => Promise.resolve({ data: { users: [] } }));
 
     await expect(countUsers()).resolves.toBe(0);
-    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'https://jsonplaceholder.typicode.com' });
+    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://localhost:8000' });
   });
 });
 
 describe('fetchRegistrations', () => {
-  it('mappe les utilisateurs distants et fusionne le local', async () => {
+  it('retourne les inscriptions depuis l api', async () => {
     mockGet.mockImplementationOnce(() =>
       Promise.resolve({
-        data: [
-          {
-            name: 'Jean Dupont',
-            email: 'jean@email.com',
-            address: { city: 'Paris', zipcode: '75001' }
-          }
-        ]
-      })
-    );
-
-    localStorage.setItem(
-      'registrations',
-      JSON.stringify([
-        {
-          nom: 'Martin',
-          prenom: 'Marie',
-          email: 'marie@email.com',
-          dateOfBirth: '1990-01-01',
-          ville: 'Lyon',
-          codePostal: '69001'
+        data: {
+          users: [sampleUser]
         }
-      ])
+      })
     );
 
     const registrations = await fetchRegistrations();
 
-    expect(registrations).toHaveLength(2);
-    expect(registrations[1].prenom).toBe('Marie');
+    expect(registrations).toHaveLength(1);
+    expect(registrations[0].prenom).toBe('Jean');
+    expect(registrations[0].nom).toBe('Dupont');
   });
 });
 
 describe('createRegistration', () => {
-  it('envoie un POST puis met en cache localement', async () => {
-    mockPost.mockImplementationOnce(() => Promise.resolve({ data: { id: 1 } }));
+  it('envoie un POST sans cache local en mode online', async () => {
+    mockPost.mockImplementationOnce(() =>
+      Promise.resolve({
+        data: {
+          id: 1,
+          ...sampleRegistration
+        }
+      })
+    );
 
-    const registration = {
-      nom: 'Dupont',
-      prenom: 'Jean',
-      email: 'jean.dupont@email.com',
-      dateOfBirth: '1990-01-01',
-      ville: 'Paris',
-      codePostal: '75001'
-    };
+    await expect(createRegistration(sampleRegistration)).resolves.toEqual(sampleRegistration);
+    expect(mockPost).toHaveBeenCalledWith('/users', sampleRegistration);
+    expect(localStorage.getItem('registrations')).toBeNull();
+  });
 
-    await expect(createRegistration(registration)).resolves.toEqual(registration);
-    expect(mockPost).toHaveBeenCalledWith('/users', {
-      name: 'Jean Dupont',
-      email: 'jean.dupont@email.com',
-      address: { city: 'Paris', zipcode: '75001' }
-    });
-    expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([registration]);
+  it('met en cache localement en mode offline', async () => {
+    process.env.REACT_APP_OFFLINE_MODE = 'true';
+
+    await expect(createRegistration(sampleRegistration)).resolves.toEqual(sampleRegistration);
+    expect(mockPost).not.toHaveBeenCalled();
+    expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([sampleRegistration]);
   });
 
   it('propage l erreur API', async () => {
     mockPost.mockImplementationOnce(() => Promise.reject(new Error('Erreur POST')));
 
-    await expect(
-      createRegistration({
-        nom: 'Dupont',
-        prenom: 'Jean',
-        email: 'jean.dupont@email.com',
-        dateOfBirth: '1990-01-01',
-        ville: 'Paris',
-        codePostal: '75001'
-      })
-    ).rejects.toThrow('Erreur POST');
+    await expect(createRegistration(sampleRegistration)).rejects.toThrow('Erreur POST');
   });
 });

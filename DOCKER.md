@@ -1,6 +1,6 @@
 # Docker
 
-Stack **optionnelle** : MySQL + API FastAPI + React. Le front React en mode `npm start` utilise le `localStorage` pour les inscriptions et n'appelle pas l'API `/users`. Cette stack sert à valider l'infrastructure Docker et l'API backend indépendamment.
+Stack MySQL + API FastAPI + React. Le front React appelle l'API locale (`http://localhost:8000`) pour lister et créer des inscriptions.
 
 Prérequis : fichier `.env` à la racine (voir `.env.example`).
 
@@ -34,4 +34,10 @@ docker compose down -v
 | API | http://localhost:8000/users |
 | Adminer | http://localhost:8080 |
 
-> Sous Docker, React est servi à la racine (`PUBLIC_URL=/`). En local via `npm start`, l'URL inclut le sous-chemin GitHub Pages (`/ci-cd-formulaire-inscription`).
+### Contrat API
+
+**GET `/users`** → `{ "users": [{ "id", "prenom", "nom", "email", "dateOfBirth", "ville", "codePostal" }] }`
+
+**POST `/users`** → corps identique (sans `id`), réponse `201` avec l'utilisateur créé.
+
+> Sous Docker, React est servi à la racine (`PUBLIC_URL=/`). En local via `npm start`, l'URL inclut le sous-chemin GitHub Pages (`/ci-cd-formulaire-inscription`). L'API est toujours joignable sur `http://localhost:8000` depuis le navigateur.
