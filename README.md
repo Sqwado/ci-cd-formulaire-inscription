@@ -2,7 +2,7 @@
 
 [![codecov](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription/graph/badge.svg)](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription)
 
-Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, sauvegarde des inscriptions valides dans le `localStorage` et affichage de la liste des inscrits.
+Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, appels à une API REST tierce ([JSONPlaceholder](https://jsonplaceholder.typicode.com)) et cache local des inscriptions de session dans le `localStorage`.
 
 ## Liens utiles
 
@@ -54,7 +54,7 @@ npm run test
 
 La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
 
-Couverture actuelle : **100 %** — **115 tests** répartis sur 12 suites.
+Couverture actuelle : **100 %** — **129 tests** répartis sur 13 suites.
 
 ### Tests end-to-end (Cypress)
 
@@ -71,13 +71,16 @@ Fichiers de tests :
 
 | Fichier | Scénario |
 |---------|----------|
-| `cypress/e2e/spec.cy.js` | Accueil avec 1 utilisateur dans le `localStorage` |
+| `cypress/e2e/spec.cy.js` | Accueil avec 1 utilisateur mocké via `cy.intercept` |
 | `cypress/e2e/registration.cy.js` | Inscription valide et inscription avec erreurs |
+
+Les tests E2E interceptent les appels `GET`/`POST` vers `**/users` (commande `mockUsersApi`) pour ne pas dépendre de l'API réelle en CI.
 
 ## Architecture
 
 ```
 src/
+├── api/api.js                # Appels axios (countUsers, fetchRegistrations, createRegistration)
 ├── module/module.js          # Validations et accès localStorage
 ├── constants/formFields.js   # Définition des champs du formulaire
 ├── hooks/
@@ -96,7 +99,16 @@ src/
     ├── ListPage.js
 ```
 
-Le compteur d'inscrits affiché dans l'en-tête provient du `localStorage` (clé `registrations`). La stack Docker (MySQL + API FastAPI) est **optionnelle** et indépendante du front React — voir [DOCKER.md](./DOCKER.md).
+### Variables d'environnement
+
+| Variable | Description | Défaut |
+|----------|-------------|--------|
+| `REACT_APP_API_URL` | URL de base de l'API REST | `https://jsonplaceholder.typicode.com` |
+| `REACT_APP_OFFLINE_MODE` | `true` = localStorage uniquement (tests Jest des pages) | `false` |
+
+Copier `.env.example` en `.env` pour personnaliser. Jest charge `.jest/setEnvVars.js` via `setupFiles`.
+
+Le compteur d'inscrits affiché dans l'en-tête provient de `countUsers()` : fusion des utilisateurs distants et du cache local de session. La stack Docker (MySQL + API FastAPI) est **optionnelle** et indépendante du front React — voir [DOCKER.md](./DOCKER.md).
 
 ## Description fonctionnelle
 
@@ -109,7 +121,7 @@ L'utilisateur peut s'inscrire avec :
 - ville
 - code postal
 
-Les données valides sont sauvegardées dans le `localStorage` sous la clé `registrations`.
+Les données valides sont envoyées à l'API (`POST /users`) puis mises en cache dans le `localStorage` sous la clé `registrations` (JSONPlaceholder ne persiste pas les créations).
 
 ### Mode router (`/register` + `/list`)
 
@@ -128,8 +140,8 @@ Les contrôles sont centralisés dans `src/module/module.js`.
 
 | Type | Fichiers principaux |
 |------|---------------------|
-| **UT** | `src/module/module.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
-| **IT** | `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
+| **UT** | `src/module/module.test.js`, `src/api/api.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
+| **IT** | `src/App.test.js`, `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
 | **E2E** | `cypress/e2e/spec.cy.js`, `cypress/e2e/registration.cy.js` |
 
 Cas couverts au minimum :
@@ -139,6 +151,7 @@ Cas couverts au minimum :
 - format des noms/prénoms (accents, tirets, apostrophes, rejets) ;
 - format de l'email ;
 - désactivation du bouton si champs incomplets ou invalides ;
+- appels API mockés avec `jest.mock('axios')` (succès et erreurs) ;
 - sauvegarde `localStorage`, redirection et mise en évidence ;
 - toaster d'erreur et messages sous les champs en rouge ;
 - parcours complets d'inscription via Cypress.
@@ -158,7 +171,7 @@ Les fichiers sont produits dans `public/docs/` (ignorés par git, publiés sur G
 Le workflow GitHub Actions (`.github/workflows/build_test_react.yml`) sur la branche `master` :
 
 1. installe les dépendances et exécute les tests Jest ;
-2. lance les tests Cypress (`cypress-io/github-action@v6`) ;
+2. lance les tests Cypress (`cypress-io/github-action@v7`) avec interception API ;
 3. envoie la couverture à Codecov ;
 4. publie le package npm si la version locale est nouvelle ;
 5. déploie l'application sur GitHub Pages.

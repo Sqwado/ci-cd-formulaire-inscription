@@ -6,7 +6,7 @@ import RegistrationsList from '../components/RegistrationsList/RegistrationsList
 import Toast from '../components/Toast/Toast';
 import { DOCS_URL } from '../constants/navigation';
 import { useToast } from '../hooks/useToast';
-import { getRegistrations } from '../module/module';
+import { fetchRegistrations } from '../api/api';
 import './ListPage.css';
 
 const HIGHLIGHT_DURATION = 4000;
@@ -20,11 +20,26 @@ function ListPage() {
   );
 
   useEffect(() => {
-    try {
-      setRegistrations(getRegistrations());
-    } catch (error) {
-      showToast(error.message || 'Une erreur est survenue', 'error');
+    let isMounted = true;
+
+    async function loadRegistrations() {
+      try {
+        const data = await fetchRegistrations();
+        if (isMounted) {
+          setRegistrations(data);
+        }
+      } catch (error) {
+        if (isMounted) {
+          showToast(error.message || 'Une erreur est survenue', 'error');
+        }
+      }
     }
+
+    loadRegistrations();
+
+    return () => {
+      isMounted = false;
+    };
   }, [location, showToast]);
 
   useEffect(() => {

@@ -1,8 +1,8 @@
-import { screen, fireEvent, act } from '@testing-library/react';
+import { screen, fireEvent, act, waitFor } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
 import RegistrationPage from './RegistrationPage';
 import ListPage from './ListPage';
-import * as moduleApi from '../module/module';
+import * as api from '../api/api';
 import { renderWithRouter } from '../test/renderWithRouter';
 
 const renderRegistrationWithRoutes = (route = '/register') => {
@@ -26,6 +26,7 @@ const fillValidForm = () => {
 
 beforeEach(() => {
   localStorage.clear();
+  process.env.REACT_APP_OFFLINE_MODE = 'true';
 });
 
 afterEach(() => {
@@ -64,14 +65,16 @@ test('affiche les erreurs de champs et un toast global lors d une soumission inv
   expect(localStorage.getItem('registrations')).toBeNull();
 });
 
-test('soumet un formulaire valide, redirige vers la liste et met en evidence la nouvelle ligne', () => {
+test('soumet un formulaire valide, redirige vers la liste et met en evidence la nouvelle ligne', async () => {
   renderRegistrationWithRoutes();
   fillValidForm();
 
   fireEvent.click(screen.getByTestId('submit'));
 
-  expect(screen.getByTestId('list-page')).toBeInTheDocument();
-  expect(screen.getByTestId('registration-item')).toHaveTextContent('Jean Dupont');
+  await waitFor(() => {
+    expect(screen.getByTestId('list-page')).toBeInTheDocument();
+    expect(screen.getByTestId('registration-item')).toHaveTextContent('Jean Dupont');
+  });
   expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
 
   expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([
@@ -92,30 +95,30 @@ test('gere un changement de champ inconnu sans planter', () => {
   expect(screen.getByTestId('submit')).toBeDisabled();
 });
 
-test('affiche un toast d erreur quand handleSubmit leve une erreur avec message', () => {
-  const submitSpy = jest.spyOn(moduleApi, 'handleSubmit').mockImplementation(() => {
-    throw new Error('Erreur de sauvegarde');
-  });
+test('affiche un toast d erreur quand createRegistration leve une erreur avec message', async () => {
+  const createSpy = jest.spyOn(api, 'createRegistration').mockRejectedValue(new Error('Erreur de sauvegarde'));
 
   renderWithRouter(<RegistrationPage />);
   fillValidForm();
   fireEvent.click(screen.getByTestId('submit'));
 
-  expect(screen.getByTestId('error-toast')).toHaveTextContent('Erreur de sauvegarde');
-  submitSpy.mockRestore();
+  await waitFor(() => {
+    expect(screen.getByTestId('error-toast')).toHaveTextContent('Erreur de sauvegarde');
+  });
+  createSpy.mockRestore();
 });
 
-test('affiche un toast d erreur generique quand handleSubmit leve sans message', () => {
-  const submitSpy = jest.spyOn(moduleApi, 'handleSubmit').mockImplementation(() => {
-    throw {};
-  });
+test('affiche un toast d erreur generique quand createRegistration leve sans message', async () => {
+  const createSpy = jest.spyOn(api, 'createRegistration').mockRejectedValue({});
 
   renderWithRouter(<RegistrationPage />);
   fillValidForm();
   fireEvent.click(screen.getByTestId('submit'));
 
-  expect(screen.getByTestId('error-toast')).toHaveTextContent('Une erreur est survenue');
-  submitSpy.mockRestore();
+  await waitFor(() => {
+    expect(screen.getByTestId('error-toast')).toHaveTextContent('Une erreur est survenue');
+  });
+  createSpy.mockRestore();
 });
 
 test('masque le toast d erreur apres le delai', () => {

@@ -1,17 +1,37 @@
 import { useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
+import { countUsers } from './api/api';
 import HomePage from './pages/HomePage';
 import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
-import { getRegistrations } from './module/module';
 
 function App() {
   const location = useLocation();
   const [usersCount, setUsersCount] = useState(0);
 
   useEffect(() => {
-    setUsersCount(getRegistrations().length);
+    let isMounted = true;
+
+    async function loadUsersCount() {
+      try {
+        const total = await countUsers();
+        if (isMounted) {
+          setUsersCount(total);
+        }
+      } catch (error) {
+        console.error(error);
+        if (isMounted) {
+          setUsersCount(0);
+        }
+      }
+    }
+
+    loadUsersCount();
+
+    return () => {
+      isMounted = false;
+    };
   }, [location]);
 
   return (

@@ -7,13 +7,47 @@ const validUser = {
   codePostal: '75001'
 };
 
+const toApiUsers = (registrations) =>
+  registrations.map((registration, index) => ({
+    id: index + 1,
+    name: `${registration.prenom} ${registration.nom}`,
+    email: registration.email,
+    address: {
+      city: registration.ville,
+      zipcode: registration.codePostal
+    }
+  }));
+
+Cypress.Commands.add('mockUsersApi', (registrations = []) => {
+  let remoteUsers = toApiUsers(registrations);
+
+  cy.intercept('GET', '**/users', (req) => {
+    req.reply({ statusCode: 200, body: remoteUsers });
+  }).as('getUsers');
+
+  cy.intercept('POST', '**/users', (req) => {
+    remoteUsers = [
+      ...remoteUsers,
+      {
+        id: remoteUsers.length + 1,
+        name: req.body.name,
+        email: req.body.email,
+        address: req.body.address
+      }
+    ];
+
+    req.reply({
+      statusCode: 201,
+      body: { id: remoteUsers.length }
+    });
+  }).as('createUser');
+});
+
 Cypress.Commands.add('visitHomeWithRegistrations', (registrations = []) => {
+  cy.mockUsersApi(registrations);
   cy.visit('/', {
     onBeforeLoad(win) {
       win.localStorage.clear();
-      if (registrations.length > 0) {
-        win.localStorage.setItem('registrations', JSON.stringify(registrations));
-      }
     }
   });
 });

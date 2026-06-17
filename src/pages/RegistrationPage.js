@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom';
+import { createRegistration } from '../api/api';
 import NavLink from '../components/NavLink/NavLink';
 import PageNavigation from '../components/PageNavigation/PageNavigation';
 import RegistrationForm from '../components/RegistrationForm/RegistrationForm';
@@ -6,7 +7,7 @@ import Toast from '../components/Toast/Toast';
 import { DOCS_URL } from '../constants/navigation';
 import { useRegistrationForm } from '../hooks/useRegistrationForm';
 import { useToast } from '../hooks/useToast';
-import { getRegistrations, handleSubmit } from '../module/module';
+import { getRegistrations, validateFormData } from '../module/module';
 import './RegistrationPage.css';
 
 function RegistrationPage() {
@@ -21,22 +22,22 @@ function RegistrationPage() {
   } = useRegistrationForm();
   const { toastMessage, toastType, showToast } = useToast();
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
+    e.preventDefault();
     const nextErrors = validateAllFields();
     setFieldErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) {
-      e.preventDefault();
       showToast('Veuillez corriger les erreurs du formulaire.', 'error');
       return;
     }
 
     try {
-      handleSubmit(e);
+      const validatedData = validateFormData(new FormData(e.target));
+      await createRegistration(validatedData);
       const highlightIndex = getRegistrations().length - 1;
       navigate('/list', { state: { highlightIndex } });
     } catch (error) {
-      e.preventDefault();
       showToast(error.message || 'Une erreur est survenue', 'error');
     }
   };
