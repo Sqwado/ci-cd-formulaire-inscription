@@ -34,7 +34,9 @@ npm install
 npm start
 ```
 
-Puis ouvrir `http://localhost:3000` dans le navigateur.
+Puis ouvrir `http://localhost:3000/ci-cd-formulaire-inscription` dans le navigateur.
+
+> Le sous-chemin `/ci-cd-formulaire-inscription` est imposé par le champ `homepage` du `package.json` (déploiement GitHub Pages). Sous Docker, l'application est servie à la racine (`http://localhost:3000`) via `PUBLIC_URL=/`.
 
 Depuis l'accueil, vous pouvez accéder à :
 
@@ -44,74 +46,33 @@ Depuis l'accueil, vous pouvez accéder à :
 
 ## Exécuter les tests
 
+### Tests unitaires et d'intégration (Jest)
+
 ```bash
 npm run test
 ```
 
 La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
 
-### Résultat des tests
+Couverture actuelle : **100 %** — **115 tests** répartis sur 12 suites.
 
-Dernière exécution locale (`npm run test`) :
+### Tests end-to-end (Cypress)
 
-```text
-$ npm run test
+Démarrer l'application (`npm start`), puis dans un autre terminal :
 
-> ci-cd-formulaire-inscription@0.4.1 test
-> react-scripts test --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js --collectCoverageFrom=!src/test/**
-
- PASS  src/module/module.test.js                                                                                                   
- PASS  src/components/RegistrationsList/RegistrationsList.test.js
- PASS  src/hooks/useToast.test.js
- PASS  src/hooks/useRegistrationForm.test.js
- PASS  src/pages/HomePage.test.js
- PASS  src/components/Toast/Toast.test.js
- PASS  src/components/PageNavigation/PageNavigation.test.js
- PASS  src/components/FormField/FormField.test.js
- PASS  src/components/NavLink/NavLink.test.js
- PASS  src/App.test.js
- PASS  src/pages/ListPage.test.js
- PASS  src/pages/RegistrationPage.test.js
-----------------------------------|---------|----------|---------|---------|-------------------
-File                              | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
-----------------------------------|---------|----------|---------|---------|-------------------
-All files                         |     100 |      100 |     100 |     100 |                   
- src                              |     100 |      100 |     100 |     100 |                   
-  App.js                          |     100 |      100 |     100 |     100 |                   
- src/components/FormField         |     100 |      100 |     100 |     100 |                   
-  FormField.js                    |     100 |      100 |     100 |     100 |                   
- src/components/NavLink           |     100 |      100 |     100 |     100 |                   
-  NavLink.js                      |     100 |      100 |     100 |     100 |                  
- src/components/PageNavigation    |     100 |      100 |     100 |     100 |                  
-  PageNavigation.js               |     100 |      100 |     100 |     100 |                  
- src/components/RegistrationForm  |     100 |      100 |     100 |     100 |                  
-  RegistrationForm.js             |     100 |      100 |     100 |     100 |                  
- src/components/RegistrationsList |     100 |      100 |     100 |     100 |                  
-  RegistrationsList.js            |     100 |      100 |     100 |     100 |                  
- src/components/Toast             |     100 |      100 |     100 |     100 |                  
-  Toast.js                        |     100 |      100 |     100 |     100 |                  
- src/constants                    |     100 |      100 |     100 |     100 |                  
-  formFields.js                   |     100 |      100 |     100 |     100 |                  
-  navigation.js                   |     100 |      100 |     100 |     100 |                  
- src/hooks                        |     100 |      100 |     100 |     100 |                  
-  useRegistrationForm.js          |     100 |      100 |     100 |     100 |                  
-  useToast.js                     |     100 |      100 |     100 |     100 |                  
- src/module                       |     100 |      100 |     100 |     100 |                  
-  module.js                       |     100 |      100 |     100 |     100 |                  
- src/pages                        |     100 |      100 |     100 |     100 |                  
-  HomePage.js                     |     100 |      100 |     100 |     100 |                  
-  ListPage.js                     |     100 |      100 |     100 |     100 |                  
-  RegistrationPage.js             |     100 |      100 |     100 |     100 |                  
-----------------------------------|---------|----------|---------|---------|-------------------
-
-Test Suites: 12 passed, 12 total
-Tests:       116 passed, 116 total
-Snapshots:   0 total
-Time:        6.096 s
-Ran all test suites.
+```bash
+npm run cypress       # interface graphique
+npm run cypress:run   # mode headless (CI)
 ```
 
-Couverture : **100 %** (statements, branches, functions, lines) sur les fichiers inclus.
+La `baseUrl` Cypress est dérivée de `PUBLIC_URL` dans `cypress.config.js` (par défaut : `http://localhost:3000/ci-cd-formulaire-inscription`).
+
+Fichiers de tests :
+
+| Fichier | Scénario |
+|---------|----------|
+| `cypress/e2e/spec.cy.js` | Accueil avec 1 utilisateur dans le `localStorage` |
+| `cypress/e2e/registration.cy.js` | Inscription valide et inscription avec erreurs |
 
 ## Architecture
 
@@ -134,6 +95,8 @@ src/
     ├── RegistrationPage.js
     ├── ListPage.js
 ```
+
+Le compteur d'inscrits affiché dans l'en-tête provient du `localStorage` (clé `registrations`). La stack Docker (MySQL + API FastAPI) est **optionnelle** et indépendante du front React — voir [DOCKER.md](./DOCKER.md).
 
 ## Description fonctionnelle
 
@@ -167,6 +130,7 @@ Les contrôles sont centralisés dans `src/module/module.js`.
 |------|---------------------|
 | **UT** | `src/module/module.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
 | **IT** | `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
+| **E2E** | `cypress/e2e/spec.cy.js`, `cypress/e2e/registration.cy.js` |
 
 Cas couverts au minimum :
 
@@ -175,8 +139,9 @@ Cas couverts au minimum :
 - format des noms/prénoms (accents, tirets, apostrophes, rejets) ;
 - format de l'email ;
 - désactivation du bouton si champs incomplets ou invalides ;
-- sauvegarde `localStorage`, toaster de succès et champs vidés ;
-- toaster d'erreur et messages sous les champs en rouge.
+- sauvegarde `localStorage`, redirection et mise en évidence ;
+- toaster d'erreur et messages sous les champs en rouge ;
+- parcours complets d'inscription via Cypress.
 
 ## Documentation
 
@@ -192,10 +157,13 @@ Les fichiers sont produits dans `public/docs/` (ignorés par git, publiés sur G
 
 Le workflow GitHub Actions (`.github/workflows/build_test_react.yml`) sur la branche `master` :
 
-1. installe les dépendances et exécute les tests ;
-2. envoie la couverture à Codecov ;
-3. publie le package npm si la version locale est nouvelle ;
-4. déploie l'application sur GitHub Pages.
+1. installe les dépendances et exécute les tests Jest ;
+2. lance les tests Cypress (`cypress-io/github-action@v6`) ;
+3. envoie la couverture à Codecov ;
+4. publie le package npm si la version locale est nouvelle ;
+5. déploie l'application sur GitHub Pages.
+
+Un workflow Docker séparé (`.github/workflows/docker.yml`) valide la stack MySQL + API — voir [DOCKER.md](./DOCKER.md).
 
 Les tests doivent réussir avant toute publication npm ou déploiement Pages.
 

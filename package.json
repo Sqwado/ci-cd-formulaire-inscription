@@ -1,14 +1,13 @@
 {
   "name": "ci-cd-formulaire-inscription",
   "homepage": "https://sqwado.github.io/ci-cd-formulaire-inscription",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "private": false,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
-    "axios": "^1.18.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-router-dom": "^7.15.1",
@@ -25,7 +24,9 @@
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",
-    "jsdoc": "jsdoc -R ./README.md -c ./jsdoc.config.json -r -d ./public/docs"
+    "jsdoc": "jsdoc -R ./README.md -c ./jsdoc.config.json -r -d ./public/docs",
+    "cypress": "cypress open",
+    "cypress:run": "cypress run"
   },
   "jest": {
     "moduleNameMapper": {
@@ -56,6 +57,7 @@
     "@babel/cli": "^7.29.7",
     "@babel/core": "^7.29.7",
     "@babel/plugin-transform-react-jsx": "^7.29.7",
+    "cypress": "^15.17.0",
     "gh-pages": "^6.3.0",
     "jsdoc": "^4.0.5",
     "react-test-renderer": "^19.2.5"

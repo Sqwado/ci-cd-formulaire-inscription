@@ -7,6 +7,8 @@
 
 # testing
 /coverage
+cypress/screenshots/
+cypress/videos/
 
 # production
 /build
@@ -29,3 +31,7 @@ yarn-error.log*
 /dist
 
 .env
+
+# python
+server/__pycache__/
+*.pyc

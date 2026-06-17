@@ -18,7 +18,7 @@ export const REGISTRATION_FIELDS = [
   },
   {
     name: 'prenom',
-    label: 'Prenom',
+    label: 'Prénom',
     placeholder: 'Jean',
     testId: 'prenom',
     errorTestId: 'prenom-error',

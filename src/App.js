@@ -1,37 +1,25 @@
-import axios from 'axios';
 import { useEffect, useState } from 'react';
-import { Route, Routes } from 'react-router-dom';
+import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import HomePage from './pages/HomePage';
 import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
+import { getRegistrations } from './module/module';
 
 function App() {
-  const port = process.env.REACT_APP_SERVER_PORT || '8000';
+  const location = useLocation();
   const [usersCount, setUsersCount] = useState(0);
 
   useEffect(() => {
-    async function countUsers() {
-      try {
-        const api = axios.create({
-          baseURL: `http://localhost:${port}`,
-        });
-        const response = await api.get('/users');
-        setUsersCount(response.data.users.length);
-      } catch (error) {
-        console.error(error);
-      }
-    }
-
-    countUsers();
-  }, [port]);
+    setUsersCount(getRegistrations().length);
+  }, [location]);
 
   return (
     <div className="App">
       <header className="App-header">
-        <h1>Users manager</h1>
-        <p>
-          <span data-testid="users-count">{usersCount}</span> user(s) already registered
+        <h1>Gestion des inscrits</h1>
+        <p data-testid="users-registration-message">
+          <span data-testid="users-count">{usersCount}</span> utilisateur(s) déjà inscrit(s)
         </p>
       </header>
       <Routes>
