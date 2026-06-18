@@ -131,6 +131,16 @@ Cypress.Commands.add('assertRegistrationListCount', (count) => {
   cy.get('[data-testid="registration-item"]').should('have.length', count);
 });
 
+Cypress.Commands.add('prepareOfflineRegistration', () => {
+  cy.fixture('users').then(({ validUser }) => {
+    cy.visit('/');
+    cy.goToRegistrationForm();
+    cy.fillRegistrationForm(validUser);
+    cy.submitRegistrationForm();
+    cy.url().should('include', '/list');
+  });
+});
+
 Cypress.Commands.add('assertRegistrationVisible', (user) => {
   cy.get('[data-testid="registration-item"]')
     .contains(`${user.prenom} ${user.nom}`)

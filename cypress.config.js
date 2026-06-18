@@ -6,6 +6,7 @@ const normalizedPublicUrl = publicUrl.endsWith("/")
   : publicUrl;
 
 module.exports = defineConfig({
+  allowCypressEnv: false,
   e2e: {
     baseUrl: `http://localhost:3000${normalizedPublicUrl}`,
     setupNodeEvents(on, config) {

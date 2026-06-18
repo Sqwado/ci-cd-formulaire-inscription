@@ -153,7 +153,7 @@ jobs:
           PUBLIC_URL: /
         with:
           install: false
-          spec: cypress/e2e/offline.cy.js
+          spec: cypress/e2e/offline-sync.cy.js
           start: npx --yes serve -s build -l 3000
           wait-on: 'http://localhost:3000'
 
@@ -164,10 +164,9 @@ jobs:
         uses: cypress-io/github-action@v7
         env:
           PUBLIC_URL: /
-          CYPRESS_offline: true
         with:
           install: false
-          spec: cypress/e2e/offline.cy.js
+          spec: cypress/e2e/offline-network.cy.js
           start: npx --yes serve -s build -l 3000
           wait-on: 'http://localhost:3000'
 
