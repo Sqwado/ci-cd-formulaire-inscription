@@ -1,14 +1,11 @@
+const { apiUrl } = require('./apiConfig');
+
 const toApiUsers = (registrations) =>
   registrations.map((registration, index) => ({
     id: index + 1,
     prenom: registration.prenom,
     nom: registration.nom
   }));
-
-const getApiBaseUrl = () =>
-  (cy.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
-
-const apiUrl = (path = '') => `${getApiBaseUrl()}${path}`;
 
 Cypress.Commands.add('mockUsersApi', (registrations = []) => {
   let remoteUsers = toApiUsers(registrations);

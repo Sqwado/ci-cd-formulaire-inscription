@@ -1,6 +1,7 @@
+const { getApiBaseUrl } = require('../support/apiConfig');
+
 describe('Administration', () => {
-  const apiBase = () =>
-    (cy.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
+  const apiBase = () => getApiBaseUrl();
 
   beforeEach(() => {
     cy.mockUsersApi([]);
