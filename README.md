@@ -9,7 +9,8 @@ Application React de formulaire d'inscription avec validation des champs, affich
 | Ressource | URL |
 |-----------|-----|
 | Dépôt GitHub | https://github.com/sqwado/ci-cd-formulaire-inscription |
-| Application déployée | https://sqwado.github.io/ci-cd-formulaire-inscription |
+| Application déployée (front) | https://sqwado.github.io/ci-cd-formulaire-inscription |
+| API déployée (back) | https://ci-cd-formulaire-inscription.vercel.app |
 | Documentation JSDoc | https://sqwado.github.io/ci-cd-formulaire-inscription/docs/index.html |
 | Package npm | https://www.npmjs.com/package/ci-cd-formulaire-inscription |
 | Couverture Codecov | https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription |
@@ -41,8 +42,31 @@ Puis ouvrir `http://localhost:3000/ci-cd-formulaire-inscription` dans le navigat
 Depuis l'accueil, vous pouvez accéder à :
 
 - **Inscription** (`/register`) : formulaire avec redirection vers la liste après succès
-- **Liste** (`/list`) : consultations des inscrits
+- **Liste** (`/list`) : consultations des inscrits (nom + prénom uniquement)
+- **Espace admin** (`/admin/login`) : connexion, gestion et suppression des inscrits
 - **Documentation** : lien vers la JSDoc générée (`/docs/index.html`)
+
+### URLs directes sur GitHub Pages
+
+GitHub Pages ne connaît pas les routes React (`/list`, `/register`, `/admin/...`) : sans configuration, un lien direct renvoie une 404.
+
+Le build copie automatiquement `index.html` vers `build/404.html` (`postbuild` → `scripts/copy-spa-404.js`). GitHub Pages sert alors cette page pour toute URL inconnue et React Router affiche la bonne vue.
+
+Fichiers concernés :
+
+- `public/.nojekyll` — désactive Jekyll sur GitHub Pages
+- `scripts/copy-spa-404.js` — génère `build/404.html` après chaque `npm run build`
+
+Vérification locale après build :
+
+```bash
+npm run build
+# build/404.html doit exister
+npx --yes serve build -l 3000
+# Ouvrir http://localhost:3000/ci-cd-formulaire-inscription/list
+```
+
+> En local avec `npm start`, le dev-server gère déjà le routage. Le correctif `404.html` cible le déploiement GitHub Pages.
 
 ## Exécuter les tests
 
@@ -54,7 +78,7 @@ npm run test
 
 La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
 
-Couverture actuelle : **100 %** — **132 tests** répartis sur 13 suites.
+Couverture actuelle : **100 %** — **157 tests** répartis sur 17 suites.
 
 ### Tests end-to-end (Cypress)
 
@@ -73,7 +97,8 @@ Fichiers de tests :
 |---------|----------|
 | `cypress/e2e/home.cy.js` | Accueil, compteur API, navigation vers la liste |
 | `cypress/e2e/registration.cy.js` | Inscription valide, formulaire invalide, validation des champs |
-| `cypress/e2e/list.cy.js` | Liste vide, affichage multiple, navigation |
+| `cypress/e2e/list.cy.js` | Liste vide, affichage multiple, navigation, **URL directe `/list`** |
+| `cypress/e2e/admin.cy.js` | Connexion admin, détail privé, suppression |
 | `cypress/e2e/api-errors.cy.js` | Erreurs GET/POST API et toasts |
 
 Les tests E2E interceptent les appels `GET`/`POST` vers `**/users` (commande `mockUsersApi`) pour ne pas dépendre de l'API réelle en CI.
@@ -173,12 +198,17 @@ Les fichiers sont produits dans `public/docs/` (ignorés par git, publiés sur G
 Le workflow GitHub Actions (`.github/workflows/build_test_react.yml`) sur la branche `master` :
 
 1. installe les dépendances et exécute les tests Jest ;
-2. lance les tests Cypress (`cypress-io/github-action@v7`) avec interception API ;
+2. build l'app (`404.html` inclus) et lance les tests Cypress ;
 3. envoie la couverture à Codecov ;
 4. publie le package npm si la version locale est nouvelle ;
-5. déploie l'application sur GitHub Pages.
+5. déploie l'application sur **GitHub Pages**.
 
-Un workflow Docker séparé (`.github/workflows/docker.yml`) valide la stack MySQL + API — voir [DOCKER.md](./DOCKER.md).
+Workflows complémentaires :
+
+- `.github/workflows/docker.yml` — stack MySQL / Adminer / API / React + tests infra et E2E Docker ;
+- `.github/workflows/production.yml` — déploiement de l'API sur **Vercel** (région `cdg1`).
+
+Voir [DOCKER.md](./DOCKER.md) pour la stack locale.
 
 Les tests doivent réussir avant toute publication npm ou déploiement Pages.
 

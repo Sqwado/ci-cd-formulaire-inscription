@@ -23,4 +23,12 @@ describe('Liste des inscrits', () => {
       cy.assertRegisteredUsersCount(1);
     });
   });
+
+  it('charge la liste via une URL directe', () => {
+    cy.mockUsersApi([]);
+    cy.visit('/list');
+    cy.wait('@getUsers');
+    cy.assertRegistrationListCount(0);
+    cy.get('[data-testid="list-registrations-section"]').should('be.visible');
+  });
 });
