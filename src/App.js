@@ -2,6 +2,10 @@ import { useEffect, useState } from 'react';
 import { Route, Routes, useLocation } from 'react-router-dom';
 import './App.css';
 import { countUsers } from './api/api';
+import AdminRoute from './components/AdminRoute/AdminRoute';
+import AdminLoginPage from './pages/AdminLoginPage';
+import AdminUserDetailPage from './pages/AdminUserDetailPage';
+import AdminUsersPage from './pages/AdminUsersPage';
 import HomePage from './pages/HomePage';
 import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
@@ -46,6 +50,23 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/register" element={<RegistrationPage />} />
         <Route path="/list" element={<ListPage />} />
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route
+          path="/admin/users"
+          element={
+            <AdminRoute>
+              <AdminUsersPage />
+            </AdminRoute>
+          }
+        />
+        <Route
+          path="/admin/users/:userId"
+          element={
+            <AdminRoute>
+              <AdminUserDetailPage />
+            </AdminRoute>
+          }
+        />
       </Routes>
     </div>
   );

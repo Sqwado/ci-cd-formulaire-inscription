@@ -32,7 +32,6 @@ docker-compose.yml
 # Documentation & config hors build
 README.md
 DOCKER.md
-requirements.txt
 babel.config.js
 jsdoc.config.json
 .gitignore

@@ -22,5 +22,9 @@
     "dateOfBirth": "2009-01-01",
     "ville": "Paris9",
     "codePostal": "7500"
+  },
+  "admin": {
+    "email": "loise.fenoll@ynov.com",
+    "password": "PvdrTAzTeR247sDnAZBr"
   }
 }

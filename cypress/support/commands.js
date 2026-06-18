@@ -2,11 +2,7 @@ const toApiUsers = (registrations) =>
   registrations.map((registration, index) => ({
     id: index + 1,
     prenom: registration.prenom,
-    nom: registration.nom,
-    email: registration.email,
-    dateOfBirth: registration.dateOfBirth,
-    ville: registration.ville,
-    codePostal: registration.codePostal
+    nom: registration.nom
   }));
 
 Cypress.Commands.add('mockUsersApi', (registrations = []) => {
@@ -139,7 +135,6 @@ Cypress.Commands.add('assertRegistrationVisible', (user) => {
   cy.get('[data-testid="registration-item"]')
     .contains(`${user.prenom} ${user.nom}`)
     .should('be.visible');
-  cy.get('[data-testid="registration-item"]').contains(user.email).should('be.visible');
 });
 
 Cypress.Commands.add('assertHighlightedRegistration', () => {

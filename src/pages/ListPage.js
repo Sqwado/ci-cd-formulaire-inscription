@@ -82,6 +82,7 @@ function ListPage() {
           headingLevel="h1"
           highlightedIndex={highlightedIndex}
           testId="list-registrations-section"
+          compact
         />
 
         {isOfflineMode() && (

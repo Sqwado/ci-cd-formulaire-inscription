@@ -53,7 +53,10 @@ jobs:
         run: npm ci
 
       - name: Generate docs and build app
+        env:
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
         run: |
+          export REACT_APP_API_URL="${REACT_APP_API_URL:-http://localhost:8000}"
           npm run jsdoc
           npm run build
 
@@ -70,7 +73,7 @@ jobs:
           install: false
           start: npx --yes serve dist-server -l 3000
           wait-on: 'http://localhost:3000/ci-cd-formulaire-inscription'
-          spec: cypress/e2e/{api-errors,home,list,registration}.cy.js
+          spec: cypress/e2e/{api-errors,home,list,registration,admin}.cy.js
 
       - name: Setup Pages
         if: github.event_name == 'push'

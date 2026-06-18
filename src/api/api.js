@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 const DEFAULT_API_URL = 'http://localhost:8000';
+const ADMIN_TOKEN_KEY = 'adminToken';
 
 let pendingRegistrations = [];
 
@@ -17,12 +18,30 @@ function getApiClient() {
   return axios.create({ baseURL });
 }
 
+function getAdminToken() {
+  return sessionStorage.getItem(ADMIN_TOKEN_KEY);
+}
+
+function setAdminToken(token) {
+  sessionStorage.setItem(ADMIN_TOKEN_KEY, token);
+}
+
+function clearAdminToken() {
+  sessionStorage.removeItem(ADMIN_TOKEN_KEY);
+}
+
+function getAuthHeaders() {
+  const token = getAdminToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 function mapApiUserToRegistration(user) {
   return {
+    id: user.id,
     nom: user.nom || '',
     prenom: user.prenom || '',
     email: user.email || '',
-    dateOfBirth: user.dateOfBirth || '1990-01-01',
+    dateOfBirth: user.dateOfBirth || '',
     ville: user.ville || '',
     codePostal: user.codePostal || ''
   };
@@ -49,11 +68,6 @@ function normalizeUsersResponse(data) {
   return [];
 }
 
-/**
- * Count users from the remote API or pending queue in offline mode.
- *
- * @returns {Promise<number>} Number of registered users.
- */
 async function countUsers() {
   if (isOfflineMode()) {
     return pendingRegistrations.length;
@@ -63,11 +77,6 @@ async function countUsers() {
   return registrations.length;
 }
 
-/**
- * Fetch registrations from the API or pending queue in offline mode.
- *
- * @returns {Promise<Object[]>} Registrations list.
- */
 async function fetchRegistrations() {
   if (isOfflineMode()) {
     return [...pendingRegistrations];
@@ -77,12 +86,13 @@ async function fetchRegistrations() {
   return normalizeUsersResponse(response.data).map(mapApiUserToRegistration);
 }
 
-/**
- * Create a registration through the API or pending queue in offline mode.
- *
- * @param {Object} registration - Validated registration data.
- * @returns {Promise<Object>} Saved registration.
- */
+async function fetchUserDetail(userId) {
+  const response = await getApiClient().get(`/users/${userId}`, {
+    headers: getAuthHeaders()
+  });
+  return mapApiUserToRegistration(response.data);
+}
+
 async function createRegistration(registration) {
   if (isOfflineMode()) {
     pendingRegistrations.push(registration);
@@ -93,11 +103,6 @@ async function createRegistration(registration) {
   return mapApiUserToRegistration(response.data);
 }
 
-/**
- * Sync pending registrations to the remote API in offline mode.
- *
- * @returns {Promise<Object[]>} Synced registrations from the API.
- */
 async function syncRegistrations() {
   const client = getApiClient();
   const syncedRegistrations = [];
@@ -111,13 +116,30 @@ async function syncRegistrations() {
   return syncedRegistrations;
 }
 
+async function loginAdmin(email, password) {
+  const response = await getApiClient().post('/auth/login', { email, password });
+  setAdminToken(response.data.token);
+  return response.data;
+}
+
+async function deleteUser(userId) {
+  await getApiClient().delete(`/users/${userId}`, {
+    headers: getAuthHeaders()
+  });
+}
+
 export {
   countUsers,
   fetchRegistrations,
+  fetchUserDetail,
   createRegistration,
   syncRegistrations,
+  loginAdmin,
+  deleteUser,
   clearPendingRegistrations,
   getApiClient,
+  getAdminToken,
+  clearAdminToken,
   isOfflineMode,
   mapApiUserToRegistration,
   mapRegistrationToApiPayload

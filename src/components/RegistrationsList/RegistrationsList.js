@@ -6,7 +6,8 @@ function RegistrationsList({
   headingLevel = 'h2',
   highlightedIndex = null,
   testId = 'registrations-list-section',
-  emptyMessage = 'Aucun inscrit pour le moment.'
+  emptyMessage = 'Aucun inscrit pour le moment.',
+  compact = false
 }) {
   const HeadingTag = headingLevel;
 
@@ -19,15 +20,23 @@ function RegistrationsList({
         <ul data-testid="registrations-list">
           {registrations.map((registration, index) => (
             <li
-              key={`${registration.email}-${index}`}
+              key={`${registration.id ?? registration.email}-${index}`}
               data-testid="registration-item"
               data-highlight-index={index}
               className={
                 index === highlightedIndex ? 'registration-item-highlight' : undefined
               }
             >
-              {registration.prenom} {registration.nom} - {registration.email} -{' '}
-              {registration.dateOfBirth} - {registration.ville} ({registration.codePostal})
+              {compact ? (
+                <>
+                  {registration.prenom} {registration.nom}
+                </>
+              ) : (
+                <>
+                  {registration.prenom} {registration.nom} - {registration.email} -{' '}
+                  {registration.dateOfBirth} - {registration.ville} ({registration.codePostal})
+                </>
+              )}
             </li>
           ))}
         </ul>

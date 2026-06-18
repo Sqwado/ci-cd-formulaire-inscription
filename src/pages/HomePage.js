@@ -18,6 +18,9 @@ function HomePage() {
         <NavLink to="/list" testId="go-to-list">
           Voir la liste des inscrits
         </NavLink>
+        <NavLink to="/admin/login" testId="go-to-admin-login">
+          Espace admin
+        </NavLink>
         <NavLink href={DOCS_URL} external testId="go-to-docs">
           Documentation
         </NavLink>

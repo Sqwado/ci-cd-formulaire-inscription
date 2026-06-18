@@ -1,0 +1,16 @@
+.admin-login-page {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.admin-login-page form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.admin-login-page input {
+  padding: 0.5rem 0.75rem;
+}

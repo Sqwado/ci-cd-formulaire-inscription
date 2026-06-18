@@ -1,9 +1,14 @@
 import axios from 'axios';
 import {
   clearPendingRegistrations,
+  clearAdminToken,
   countUsers,
   createRegistration,
+  deleteUser,
   fetchRegistrations,
+  fetchUserDetail,
+  getAdminToken,
+  loginAdmin,
   syncRegistrations
 } from './api';
 
@@ -11,15 +16,12 @@ jest.mock('axios');
 
 const mockGet = jest.fn();
 const mockPost = jest.fn();
+const mockDelete = jest.fn();
 
 const sampleUser = {
   id: 1,
   prenom: 'Jean',
-  nom: 'Dupont',
-  email: 'jean@email.com',
-  dateOfBirth: '1990-01-01',
-  ville: 'Paris',
-  codePostal: '75001'
+  nom: 'Dupont'
 };
 
 const sampleRegistration = {
@@ -31,12 +33,19 @@ const sampleRegistration = {
   codePostal: '75001'
 };
 
+const sampleApiResponse = {
+  id: 1,
+  ...sampleRegistration
+};
+
 beforeEach(() => {
   jest.clearAllMocks();
   clearPendingRegistrations();
+  clearAdminToken();
+  sessionStorage.clear();
   process.env.REACT_APP_OFFLINE_MODE = 'false';
   process.env.REACT_APP_API_URL = 'http://localhost:8000';
-  axios.create.mockReturnValue({ get: mockGet, post: mockPost });
+  axios.create.mockReturnValue({ get: mockGet, post: mockPost, delete: mockDelete });
 });
 
 describe('countUsers', () => {
@@ -130,7 +139,10 @@ describe('createRegistration', () => {
       })
     );
 
-    await expect(createRegistration(sampleRegistration)).resolves.toEqual(sampleRegistration);
+    await expect(createRegistration(sampleRegistration)).resolves.toEqual({
+      id: 1,
+      ...sampleRegistration
+    });
     expect(mockPost).toHaveBeenCalledWith('/users', sampleRegistration);
   });
 
@@ -163,7 +175,12 @@ describe('syncRegistrations', () => {
       })
     );
 
-    await expect(syncRegistrations()).resolves.toEqual([sampleRegistration]);
+    await expect(syncRegistrations()).resolves.toEqual([
+      {
+        id: 1,
+        ...sampleRegistration
+      }
+    ]);
     expect(mockPost).toHaveBeenCalledWith('/users', sampleRegistration);
     await expect(fetchRegistrations()).resolves.toEqual([]);
   });
@@ -174,5 +191,56 @@ describe('syncRegistrations', () => {
     mockPost.mockImplementationOnce(() => Promise.reject(new Error('Erreur sync')));
 
     await expect(syncRegistrations()).rejects.toThrow('Erreur sync');
+  });
+});
+
+describe('loginAdmin', () => {
+  it('stocke le token admin apres connexion', async () => {
+    mockPost.mockResolvedValueOnce({
+      data: { token: 'admin-token', email: 'loise.fenoll@ynov.com' }
+    });
+
+    await expect(
+      loginAdmin('loise.fenoll@ynov.com', 'PvdrTAzTeR247sDnAZBr')
+    ).resolves.toEqual({
+      token: 'admin-token',
+      email: 'loise.fenoll@ynov.com'
+    });
+    expect(getAdminToken()).toBe('admin-token');
+  });
+});
+
+describe('fetchUserDetail', () => {
+  it('recupere les informations privees avec le token admin', async () => {
+    sessionStorage.setItem('adminToken', 'admin-token');
+    mockGet.mockResolvedValueOnce({ data: sampleApiResponse });
+
+    await expect(fetchUserDetail(1)).resolves.toEqual({
+      id: 1,
+      ...sampleRegistration
+    });
+    expect(mockGet).toHaveBeenCalledWith('/users/1', {
+      headers: { Authorization: 'Bearer admin-token' }
+    });
+  });
+
+  it('envoie la requete sans header si aucun token admin', async () => {
+    mockGet.mockResolvedValueOnce({ data: sampleApiResponse });
+
+    await fetchUserDetail(1);
+
+    expect(mockGet).toHaveBeenCalledWith('/users/1', { headers: {} });
+  });
+});
+
+describe('deleteUser', () => {
+  it('supprime un utilisateur avec le token admin', async () => {
+    sessionStorage.setItem('adminToken', 'admin-token');
+    mockDelete.mockResolvedValueOnce({ status: 204 });
+
+    await expect(deleteUser(1)).resolves.toBeUndefined();
+    expect(mockDelete).toHaveBeenCalledWith('/users/1', {
+      headers: { Authorization: 'Bearer admin-token' }
+    });
   });
 });

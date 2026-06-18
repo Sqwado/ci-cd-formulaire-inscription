@@ -1,13 +1,18 @@
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, timezone
+from typing import Optional
 
+import bcrypt
+import jwt
 import mysql.connector
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 app = FastAPI()
 origins = ["*"]
+security = HTTPBearer(auto_error=False)
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,14 +26,25 @@ app.add_middleware(
 class UserCreate(BaseModel):
     prenom: str = Field(min_length=1)
     nom: str = Field(min_length=1)
-    email: str = Field(min_length=3)
+    email: str = Field(min_length=1)
     dateOfBirth: str = Field(min_length=1)
     ville: str = Field(min_length=1)
     codePostal: str = Field(min_length=1)
 
 
-class UserRead(UserCreate):
+class UserPublic(BaseModel):
     id: int
+    prenom: str
+    nom: str
+
+
+class UserPrivate(UserCreate):
+    id: int
+
+
+class AdminLogin(BaseModel):
+    email: str = Field(min_length=3)
+    password: str = Field(min_length=1)
 
 
 def get_db_connection():
@@ -36,8 +52,8 @@ def get_db_connection():
         return mysql.connector.connect(
             database=os.getenv("MYSQL_DATABASE"),
             user=os.getenv("MYSQL_USER"),
-            password=os.getenv("MYSQL_ROOT_PASSWORD"),
-            port=3306,
+            password=os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQL_ROOT_PASSWORD"),
+            port=int(os.getenv("MYSQL_PORT", "3306")),
             host=os.getenv("MYSQL_HOST"),
         )
     except mysql.connector.Error as error:
@@ -50,7 +66,15 @@ def format_date(value):
     return str(value)
 
 
-def map_row_to_user(row):
+def map_row_to_public(row):
+    return {
+        "id": row["id"],
+        "prenom": row["name"],
+        "nom": row["surname"],
+    }
+
+
+def map_row_to_private(row):
     return {
         "id": row["id"],
         "prenom": row["name"],
@@ -62,6 +86,100 @@ def map_row_to_user(row):
     }
 
 
+def get_jwt_secret():
+    return os.getenv("JWT_SECRET", "dev-secret-change-in-prod")
+
+
+def create_access_token(admin_id: int, email: str):
+    payload = {
+        "sub": str(admin_id),
+        "email": email,
+        "exp": datetime.now(timezone.utc) + timedelta(hours=8),
+    }
+    return jwt.encode(payload, get_jwt_secret(), algorithm="HS256")
+
+
+def hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
+
+
+def seed_admin():
+    email = os.getenv("ADMIN_EMAIL")
+    password = os.getenv("ADMIN_PASSWORD")
+    if not email or not password:
+        return
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id FROM admins WHERE email = %s", (email,))
+        if cursor.fetchone():
+            return
+
+        cursor.execute(
+            "INSERT INTO admins (email, password_hash) VALUES (%s, %s)",
+            (email, hash_password(password)),
+        )
+        conn.commit()
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.on_event("startup")
+async def on_startup():
+    seed_admin()
+
+
+def get_current_admin(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
+):
+    if credentials is None or credentials.scheme.lower() != "bearer":
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    try:
+        payload = jwt.decode(credentials.credentials, get_jwt_secret(), algorithms=["HS256"])
+        admin_id = int(payload["sub"])
+    except (jwt.PyJWTError, ValueError, KeyError) as error:
+        raise HTTPException(status_code=401, detail="Invalid token") from error
+
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, email FROM admins WHERE id = %s", (admin_id,))
+        admin = cursor.fetchone()
+        if not admin:
+            raise HTTPException(status_code=401, detail="Admin not found")
+        return admin
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.post("/auth/login")
+async def login_admin(credentials: AdminLogin):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT id, email, password_hash FROM admins WHERE email = %s",
+            (credentials.email,),
+        )
+        admin = cursor.fetchone()
+        if not admin or not verify_password(credentials.password, admin["password_hash"]):
+            raise HTTPException(status_code=401, detail="Invalid credentials")
+
+        token = create_access_token(admin["id"], admin["email"])
+        return {"token": token, "email": admin["email"]}
+    finally:
+        cursor.close()
+        conn.close()
+
+
 @app.get("/users")
 async def get_users():
     conn = get_db_connection()
@@ -69,13 +187,35 @@ async def get_users():
     try:
         cursor.execute(
             """
-            SELECT id, name, surname, email, date_of_birth, city, postal_code
+            SELECT id, name, surname
             FROM users
             ORDER BY id
             """
         )
         records = cursor.fetchall()
-        return {"users": [map_row_to_user(record) for record in records]}
+        return {"users": [map_row_to_public(record) for record in records]}
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.get("/users/{user_id}")
+async def get_user(user_id: int, _admin=Depends(get_current_admin)):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            """
+            SELECT id, name, surname, email, date_of_birth, city, postal_code
+            FROM users
+            WHERE id = %s
+            """,
+            (user_id,),
+        )
+        record = cursor.fetchone()
+        if not record:
+            raise HTTPException(status_code=404, detail="User not found")
+        return map_row_to_private(record)
     finally:
         cursor.close()
         conn.close()
@@ -111,7 +251,21 @@ async def create_user(user: UserCreate):
             (user_id,),
         )
         created_user = cursor.fetchone()
-        return map_row_to_user(created_user)
+        return map_row_to_private(created_user)
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: int, _admin=Depends(get_current_admin)):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="User not found")
+        conn.commit()
     finally:
         cursor.close()
         conn.close()
