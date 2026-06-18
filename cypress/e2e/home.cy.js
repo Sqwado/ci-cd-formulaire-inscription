@@ -14,6 +14,15 @@ describe('Page d accueil', () => {
     });
   });
 
+  it('affiche une page 404 pour une url inconnue', () => {
+    cy.mockUsersApi([]);
+    cy.visit('/page-inexistante');
+    cy.get('[data-testid="not-found-page"]').should('be.visible');
+    cy.get('[data-testid="not-found-page"]').should('contain', 'Page introuvable');
+    cy.get('[data-testid="go-to-home-from-404"]').click();
+    cy.assertHomePage();
+  });
+
   it('permet d acceder a la liste des inscrits', () => {
     cy.fixture('users').then(({ validUser }) => {
       cy.visitHomeWithRegistrations([validUser]);

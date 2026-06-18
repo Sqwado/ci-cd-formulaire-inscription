@@ -8,6 +8,7 @@ import AdminUserDetailPage from './pages/AdminUserDetailPage';
 import AdminUsersPage from './pages/AdminUsersPage';
 import HomePage from './pages/HomePage';
 import ListPage from './pages/ListPage';
+import NotFoundPage from './pages/NotFoundPage';
 import RegistrationPage from './pages/RegistrationPage';
 
 function App() {
@@ -67,6 +68,7 @@ function App() {
             </AdminRoute>
           }
         />
+        <Route path="*" element={<NotFoundPage />} />
       </Routes>
     </div>
   );

@@ -1,43 +1,130 @@
-# Docker
+# Docker — stack complète
 
-Stack MySQL + API FastAPI + React. Le front React appelle l'API locale (`http://localhost:8000`) pour lister et créer des inscriptions.
+Architecture **MySQL / Adminer / API Python (FastAPI) / React** pour le 2ᵉ projet individuel Ynov.
 
-Prérequis : fichier `.env` à la racine (voir `.env.example`).
+Le front React persiste les inscriptions via l'API (`POST /users`) et affiche la liste publique (nom + prénom). L'espace admin permet de consulter les données privées et de supprimer un inscrit.
 
-### Secrets GitHub (pipeline Docker)
+## Prérequis
 
-| Secret | Description |
-|--------|-------------|
-| `DOCKERHUB_USERNAME` | Nom d'utilisateur Docker Hub |
-| `DOCKERHUB_TOKEN` | Token d'accès créé sur [hub.docker.com](https://hub.docker.com) |
-
-Le workflow `.github/workflows/docker.yml` publie `username/frontend` et `username/backend`, puis lance `docker compose` et vérifie que les 4 services (`db`, `adminer`, `server`, `react`) sont `healthy`.
+- Docker et Docker Compose
+- Fichier `.env` à la racine (copier depuis `.env.example`)
 
 ```bash
-docker compose -f docker-compose.yml build
-docker compose up -d
-docker compose up -d --build
-docker compose ps
-docker compose down -v
+cp .env.example .env
 ```
 
-### Images (build via compose)
+> **Piège local :** ne pas décommenter la section Alwaysdata dans `.env`. Ces variables écraseraient `MYSQL_DATABASE=ynov_ci` et le healthcheck MySQL échouerait.
 
-| Service | Dockerfile | Image | Volumes montés |
-|---------|------------|-------|----------------|
-| **server** | `./server/Dockerfile` | `server` | dossier `./server` monté sur `/server` |
-| **react** | `./react/DockerfileNodejs` | `react` | projet monté sur `/app` (+ `node_modules` préservé) |
+## Démarrage
 
-| Service | URL |
-|---------|-----|
-| React | http://localhost:3000 (`PUBLIC_URL=/`) |
-| API | http://localhost:8000/users |
-| Adminer | http://localhost:8080 |
+```bash
+docker compose build
+docker compose up -d
+docker compose ps          # les 4 services doivent être healthy
+docker compose logs -f server
+docker compose down -v     # arrêt + suppression des volumes
+```
 
-### Contrat API
+## Services
 
-**GET `/users`** → `{ "users": [{ "id", "prenom", "nom", "email", "dateOfBirth", "ville", "codePostal" }] }`
+| Service | Image / build | URL | Rôle |
+|---------|---------------|-----|------|
+| **db** | `mysql:9.7` | interne | Base `ynov_ci`, migrations SQL au premier démarrage (`./db`) |
+| **adminer** | `adminer` | http://localhost:8080 | Interface web MySQL |
+| **server** | `./server/Dockerfile` | http://localhost:8000 | API REST FastAPI |
+| **react** | `./react/DockerfileNodejs` | http://localhost:3000 | Front React (`PUBLIC_URL=/`) |
 
-**POST `/users`** → corps identique (sans `id`), réponse `201` avec l'utilisateur créé.
+Connexion Adminer : système **MySQL**, serveur **db**, utilisateur **root**, mot de passe `MYSQL_ROOT_PASSWORD`, base `ynov_ci`.
 
-> Sous Docker, React est servi à la racine (`PUBLIC_URL=/`). En local via `npm start`, l'URL inclut le sous-chemin GitHub Pages (`/ci-cd-formulaire-inscription`). L'API est toujours joignable sur `http://localhost:8000` depuis le navigateur.
+## Administrateur (seed)
+
+Au démarrage de l'API, si la table `admins` est vide, un compte est créé à partir des variables d'environnement :
+
+| Variable | Valeur (sujet) |
+|----------|----------------|
+| `ADMIN_EMAIL` | `loise.fenoll@ynov.com` |
+| `ADMIN_PASSWORD` | `PvdrTAzTeR247sDnAZBr` |
+
+Migration : `db/migration-v005.sql`.
+
+## Contrat API
+
+### Public
+
+**GET `/users`** — liste réduite (sans email ni données sensibles) :
+
+```json
+{ "users": [{ "id": 1, "prenom": "Jean", "nom": "Dupont" }] }
+```
+
+**POST `/users`** — création d'un inscrit (corps complet), réponse `201` avec l'utilisateur créé.
+
+### Admin (JWT Bearer)
+
+**POST `/auth/login`** — `{ "email", "password" }` → `{ "token", "email" }`
+
+**GET `/users/{id}`** — détail privé (email, date de naissance, ville, code postal).
+
+**DELETE `/users/{id}`** — suppression, réponse `204`.
+
+### Vérification infra (locale ou CI)
+
+```bash
+curl -fsS http://localhost:8000/users | jq .
+curl -fsS -X POST http://localhost:8000/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"loise.fenoll@ynov.com","password":"PvdrTAzTeR247sDnAZBr"}' | jq .
+curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:3000/
+curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:8080/
+```
+
+## Variables d'environnement
+
+| Variable | Local (Docker) | Production |
+|----------|------------------|------------|
+| `MYSQL_ROOT_PASSWORD` | `.env` | — |
+| `MYSQL_DATABASE` | `ynov_ci` | Alwaysdata |
+| `MYSQL_USER` | `root` | Alwaysdata |
+| `MYSQL_PASSWORD` | vide (= root) | Alwaysdata |
+| `MYSQL_HOST` | `db` | Alwaysdata host |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | `.env` | Vercel env vars |
+| `JWT_SECRET` | `.env` | Vercel env vars |
+| `REACT_APP_API_URL` | `http://localhost:8000` | URL Vercel (secret GitHub Pages) |
+
+## Pipeline CI — `.github/workflows/docker.yml`
+
+Sur chaque push / PR vers `master` :
+
+1. **Build Docker Hub** (push uniquement) — images `frontend` et `backend`
+2. **Docker Compose** — démarrage des 4 services
+3. **Tests d'infrastructure** — healthchecks + `curl` API / React / Adminer / login admin
+4. **Cypress E2E Docker** — `cypress/e2e/docker-integration.cy.js` (API réelle)
+5. **Cypress offline** — `offline-sync.cy.js`, `offline-network.cy.js`
+
+### Secrets GitHub requis
+
+| Secret | Usage |
+|--------|-------|
+| `DOCKERHUB_USERNAME` | Publication des images |
+| `DOCKERHUB_TOKEN` | Token Docker Hub |
+
+## Production
+
+| Composant | Hébergement |
+|-----------|-------------|
+| MySQL | **Alwaysdata** |
+| API | **Vercel** (région `cdg1`, workflow `production.yml`) |
+| Front | **GitHub Pages** (workflow `build_test_react.yml`) |
+
+Secrets Vercel / GitHub : voir `.env.example` (section Alwaysdata et Vercel).
+
+Le front en production appelle l'API via `REACT_APP_API_URL` (secret `REACT_APP_API_URL` dans GitHub Actions).
+
+## Différences local vs production
+
+| | Docker / `npm start` local | GitHub Pages |
+|--|---------------------------|--------------|
+| URL front | `http://localhost:3000` ou `/ci-cd-formulaire-inscription` | `https://sqwado.github.io/ci-cd-formulaire-inscription` |
+| `PUBLIC_URL` | `/` (Docker) ou sous-chemin (CRA) | `/ci-cd-formulaire-inscription` |
+| API | `http://localhost:8000` | `https://ci-cd-formulaire-inscription.vercel.app` |
+| Routage SPA | dev-server ou `serve.json` (CI) | `build/404.html` (voir README) |

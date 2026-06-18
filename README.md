@@ -1,8 +1,8 @@
-# Projet React - Formulaire d'inscription
+# Projet React — Formulaire d'inscription (2ᵉ projet individuel)
 
 [![codecov](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription/graph/badge.svg)](https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription)
 
-Application React de formulaire d'inscription avec validation des champs, affichage des erreurs par champ, et persistance via une API REST FastAPI + MySQL (`http://localhost:8000`).
+Application React avec formulaire d'inscription, persistance **MySQL** via une API **FastAPI**, espace **admin** (JWT), stack **Docker** complète et pipelines **GitHub Actions** (tests + déploiement GitHub Pages + Vercel).
 
 ## Liens utiles
 
@@ -15,206 +15,219 @@ Application React de formulaire d'inscription avec validation des champs, affich
 | Package npm | https://www.npmjs.com/package/ci-cd-formulaire-inscription |
 | Couverture Codecov | https://codecov.io/gh/sqwado/ci-cd-formulaire-inscription |
 
+## Conformité au sujet
+
+| Critère (notation) | Implémentation | État |
+|--------------------|----------------|------|
+| Tests UT/IT + couverture (4 pts) | Jest — **160 tests**, **100 %** couverture (admin inclus) | ✅ |
+| Architecture Docker mysql/python/adminer/react (4 pts) | `docker-compose.yml` — 4 services healthy | ✅ |
+| Tests d'infrastructure (4 pts) | `docker.yml` — healthchecks + `curl` API/login/React/Adminer | ✅ |
+| Tests E2E Cypress (4 pts) | 8 specs (mock, Docker, offline, admin) | ✅ |
+| Pipeline CI/CD + déploiement prod (4 pts) | Pages + Vercel + MySQL Alwaysdata | ✅ |
+
+### Fonctionnalités
+
+- **Inscription** : formulaire validé → `POST /users` → MySQL (plus de localStorage en mode normal)
+- **Liste publique** : nom + prénom uniquement (`GET /users`)
+- **Admin** : login JWT, détail privé (`GET /users/{id}`), suppression (`DELETE /users/{id}`)
+- **Seed admin** : `ADMIN_EMAIL` / `ADMIN_PASSWORD` au démarrage API (`loise.fenoll@ynov.com` / `PvdrTAzTeR247sDnAZBr`)
+
 ## Prérequis
 
-- Git
-- Node.js (version 18 ou supérieure recommandée)
-- npm (installé avec Node.js)
+- Git, Node.js 18+
+- Docker + Docker Compose (stack complète)
+- npm
 
-## Cloner et installer le projet
+## Installation
 
 ```bash
 git clone https://github.com/sqwado/ci-cd-formulaire-inscription.git
 cd ci-cd-formulaire-inscription
 npm install
+cp .env.example .env
 ```
 
 ## Lancer l'application
+
+### Front seul (dev)
 
 ```bash
 npm start
 ```
 
-Puis ouvrir `http://localhost:3000/ci-cd-formulaire-inscription` dans le navigateur.
+Ouvrir `http://localhost:3000/ci-cd-formulaire-inscription` (sous-chemin imposé par `homepage` pour GitHub Pages).
 
-> Le sous-chemin `/ci-cd-formulaire-inscription` est imposé par le champ `homepage` du `package.json` (déploiement GitHub Pages). Sous Docker, l'application est servie à la racine (`http://localhost:3000`) via `PUBLIC_URL=/`.
+### Stack Docker complète (recommandé)
 
-Depuis l'accueil, vous pouvez accéder à :
+```bash
+docker compose up -d --build
+```
 
-- **Inscription** (`/register`) : formulaire avec redirection vers la liste après succès
-- **Liste** (`/list`) : consultations des inscrits (nom + prénom uniquement)
-- **Espace admin** (`/admin/login`) : connexion, gestion et suppression des inscrits
-- **Documentation** : lien vers la JSDoc générée (`/docs/index.html`)
+| Service | URL |
+|---------|-----|
+| React | http://localhost:3000 |
+| API | http://localhost:8000 |
+| Adminer | http://localhost:8080 |
+
+Voir [DOCKER.md](./DOCKER.md) pour le détail (variables, API, admin, CI Docker).
+
+### Pages de l'application
+
+| Route | Description |
+|-------|-------------|
+| `/` | Accueil, compteur d'inscrits |
+| `/register` | Formulaire d'inscription |
+| `/list` | Liste publique (nom + prénom) |
+| `/admin/login` | Connexion administrateur |
+| `/admin/users` | Gestion des inscrits |
+| `/admin/users/:id` | Détail privé + suppression |
+| `*` (autre) | Page 404 — « Page introuvable » |
 
 ### URLs directes sur GitHub Pages
 
-GitHub Pages ne connaît pas les routes React (`/list`, `/register`, `/admin/...`) : sans configuration, un lien direct renvoie une 404.
+GitHub Pages ne connaît pas les routes React. Le build copie `index.html` → `build/404.html` (`postbuild` → `scripts/copy-spa-404.js`) pour que les sous-URLs connues (`/list`, `/register`, `/admin/...`) chargent l'application.
 
-Le build copie automatiquement `index.html` vers `build/404.html` (`postbuild` → `scripts/copy-spa-404.js`). GitHub Pages sert alors cette page pour toute URL inconnue et React Router affiche la bonne vue.
+Une fois l'app démarrée, **React Router** affiche la bonne page pour les routes gérées, ou `NotFoundPage` (message 404) pour toute URL non définie (`/page-inexistante`, `/admin`, etc.).
 
-Fichiers concernés :
-
-- `public/.nojekyll` — désactive Jekyll sur GitHub Pages
-- `scripts/copy-spa-404.js` — génère `build/404.html` après chaque `npm run build`
-
-Vérification locale après build :
+Fichiers : `public/.nojekyll`, `scripts/copy-spa-404.js`, `src/pages/NotFoundPage.js`.
 
 ```bash
 npm run build
 # build/404.html doit exister
-npx --yes serve build -l 3000
-# Ouvrir http://localhost:3000/ci-cd-formulaire-inscription/list
 ```
 
-> En local avec `npm start`, le dev-server gère déjà le routage. Le correctif `404.html` cible le déploiement GitHub Pages.
-
-## Exécuter les tests
+## Tests
 
 ### Tests unitaires et d'intégration (Jest)
 
 ```bash
-npm run test
+npm test
 ```
 
-La couverture exclut `src/index.js`, `src/reportWebVitals.js` et `src/test/**`.
+**160 tests**, **18 suites**, **100 %** de couverture (admin, API, pages, composants).
 
-Couverture actuelle : **100 %** — **157 tests** répartis sur 17 suites.
+| Type | Fichiers |
+|------|----------|
+| UT | `module.test.js`, `api.test.js`, `hooks/*.test.js`, `components/**/*.test.js` |
+| IT | `App.test.js`, `pages/*.test.js` (dont `Admin*`) |
 
 ### Tests end-to-end (Cypress)
 
-Démarrer l'application (`npm start`), puis dans un autre terminal :
-
 ```bash
-npm run cypress       # interface graphique
-npm run cypress:run   # mode headless (CI)
+npm start          # terminal 1
+npm run cypress    # ou npm run cypress:run
 ```
-
-La `baseUrl` Cypress est dérivée de `PUBLIC_URL` dans `cypress.config.js` (par défaut : `http://localhost:3000/ci-cd-formulaire-inscription`).
-
-Fichiers de tests :
 
 | Fichier | Scénario |
 |---------|----------|
-| `cypress/e2e/home.cy.js` | Accueil, compteur API, navigation vers la liste |
-| `cypress/e2e/registration.cy.js` | Inscription valide, formulaire invalide, validation des champs |
-| `cypress/e2e/list.cy.js` | Liste vide, affichage multiple, navigation, **URL directe `/list`** |
-| `cypress/e2e/admin.cy.js` | Connexion admin, détail privé, suppression |
-| `cypress/e2e/api-errors.cy.js` | Erreurs GET/POST API et toasts |
+| `home.cy.js` | Accueil, compteur, navigation |
+| `registration.cy.js` | Inscription valide / invalide |
+| `list.cy.js` | Liste, navigation, **URL directe `/list`** |
+| `admin.cy.js` | Login admin, détail privé, suppression |
+| `api-errors.cy.js` | Erreurs API et toasts |
+| `docker-integration.cy.js` | Stack Docker, API réelle, données privées admin |
+| `offline-sync.cy.js` | Synchronisation hors-ligne |
+| `offline-network.cy.js` | Réseau coupé |
 
-Les tests E2E interceptent les appels `GET`/`POST` vers `**/users` (commande `mockUsersApi`) pour ne pas dépendre de l'API réelle en CI.
+En CI mock (`build_test_react.yml`) : `home`, `registration`, `list`, `admin`, `api-errors`.  
+En CI Docker (`docker.yml`) : `docker-integration`, `offline-sync`, `offline-network`.
 
 ## Architecture
 
 ```
 src/
-├── api/api.js                # Appels axios (countUsers, fetchRegistrations, createRegistration)
-├── module/module.js          # Validations et accès localStorage
-├── constants/formFields.js   # Définition des champs du formulaire
-├── hooks/
-│   ├── useRegistrationForm.js
-│   └── useToast.js
-├── components/
-│   ├── FormField/
-│   ├── NavLink/
-│   ├── PageNavigation/
-│   ├── RegistrationForm/
-│   ├── RegistrationsList/
-│   └── Toast/
-└── pages/
-    ├── HomePage.js
-    ├── RegistrationPage.js
-    ├── ListPage.js
+├── api/api.js                 # axios : users, login admin, delete
+├── module/module.js           # validations (+ localStorage mode offline)
+├── pages/
+│   ├── HomePage.js
+│   ├── RegistrationPage.js
+│   ├── ListPage.js            # liste compacte (nom + prénom)
+│   ├── AdminLoginPage.js
+│   ├── AdminUsersPage.js
+│   ├── AdminUserDetailPage.js
+│   └── NotFoundPage.js        # routes inconnues
+├── components/AdminRoute/     # protection routes admin
+└── ...
+server/serveur.py              # FastAPI + MySQL + JWT
+db/migration-v00*.sql          # schéma users + admins
+docker-compose.yml             # db, adminer, server, react
 ```
 
 ### Variables d'environnement
 
-| Variable | Description | Défaut |
-|----------|-------------|--------|
-| `REACT_APP_API_URL` | URL de base de l'API REST | `http://localhost:8000` |
-| `REACT_APP_OFFLINE_MODE` | `true` = localStorage uniquement (tests Jest des pages) | `false` |
-
-Copier `.env.example` en `.env` pour personnaliser. Jest charge `.jest/setEnvVars.js` via `setupFiles`.
-
-Le compteur d'inscrits affiché dans l'en-tête provient de `countUsers()` via l'API. En mode offline (`REACT_APP_OFFLINE_MODE=true`), les données sont lues/écrites dans le `localStorage`. Voir [DOCKER.md](./DOCKER.md) pour lancer la stack complète.
-
-## Description fonctionnelle
-
-L'utilisateur peut s'inscrire avec :
-
-- nom
-- prénom
-- email
-- date de naissance
-- ville
-- code postal
-
-Les données valides sont envoyées à l'API (`POST /users`) et persistées en base MySQL.
-
-### Mode router (`/register` + `/list`)
-
-Variante avec pages séparées : après une inscription valide, redirection vers la liste avec mise en évidence de la nouvelle ligne.
+| Variable | Description | Défaut local |
+|----------|-------------|--------------|
+| `REACT_APP_API_URL` | URL API | `http://localhost:8000` |
+| `REACT_APP_OFFLINE_MODE` | `true` = file d'attente mémoire (tests offline) | `false` |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Seed admin API | voir sujet |
+| `JWT_SECRET` | Signature JWT | à changer en prod |
+| `MYSQL_*` | Connexion MySQL | voir `.env.example` |
 
 ## Règles de validation
 
-Les contrôles sont centralisés dans `src/module/module.js`.
+Centralisées dans `src/module/module.js` :
 
-- Nom, prénom et ville : lettres Unicode (accents, tréma), espaces, apostrophes et tirets ; pas de chiffres ni caractères spéciaux arbitraires.
-- Email : format `utilisateur@domaine.extension`.
-- Date de naissance : `YYYY-MM-DD`, `YYYY/MM/DD`, `DD/MM/YYYY` ou `DD-MM-YYYY`, avec au moins 18 ans.
-- Code postal : format français métropolitain ou DOM-TOM.
+- Nom, prénom, ville : lettres Unicode, espaces, apostrophes, tirets
+- Email : format valide
+- Date de naissance : formats acceptés, majorité (18 ans)
+- Code postal : format français métropolitain / DOM-TOM
 
-## Tests
+## CI/CD
 
-| Type | Fichiers principaux |
-|------|---------------------|
-| **UT** | `src/module/module.test.js`, `src/api/api.test.js`, `src/hooks/*.test.js`, `src/components/**/*.test.js` |
-| **IT** | `src/App.test.js`, `src/pages/RegistrationPage.test.js`, `src/pages/ListPage.test.js` |
-| **E2E** | `cypress/e2e/home.cy.js`, `cypress/e2e/registration.cy.js`, `cypress/e2e/list.cy.js`, `cypress/e2e/api-errors.cy.js` |
+Trois workflows sur `master` :
 
-Cas couverts au minimum :
+### `.github/workflows/build_test_react.yml`
 
-- calcul de l'âge et majorité (`calculateAge`, `isAdult`) ;
-- format du code postal français ;
-- format des noms/prénoms (accents, tirets, apostrophes, rejets) ;
-- format de l'email ;
-- désactivation du bouton si champs incomplets ou invalides ;
-- appels API mockés avec `jest.mock('axios')` (succès et erreurs) ;
-- sauvegarde `localStorage`, redirection et mise en évidence ;
-- toaster d'erreur et messages sous les champs en rouge ;
-- parcours complets d'inscription via Cypress.
+1. Tests Jest + couverture Codecov
+2. Build React (`404.html` inclus) + Cypress (mock API)
+3. Publication npm si nouvelle version
+4. Déploiement **GitHub Pages**
 
-## Documentation
+### `.github/workflows/docker.yml`
 
-Génération locale de la JSDoc :
+1. Build/push images Docker Hub (`frontend`, `backend`)
+2. `docker compose up` — 4 services healthy
+3. Tests d'infrastructure (`curl`)
+4. Cypress E2E sur stack réelle + tests offline
+
+### `.github/workflows/production.yml`
+
+1. Tests Jest
+2. Build et déploiement API sur **Vercel** (`cdg1`, MySQL Alwaysdata via secrets)
+
+### Secrets GitHub
+
+| Secret | Workflow |
+|--------|----------|
+| `CODECOV_TOKEN` | Couverture |
+| `NPM_TOKEN`, `USER_EMAIL`, `USER_NAME` | Publication npm |
+| `REACT_APP_API_URL` | Build Pages → API prod |
+| `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | Images Docker |
+| `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Déploiement API |
+| Variables MySQL/admin | Vercel dashboard + secrets |
+
+MySQL production : **Alwaysdata** (variables dans Vercel, pas dans `.env` local).
+
+## Documentation JSDoc
 
 ```bash
 npm run jsdoc
 ```
 
-Les fichiers sont produits dans `public/docs/` (ignorés par git, publiés sur GitHub Pages lors du build CI).
+Sortie dans `public/docs/` (publiée sur Pages lors du build CI).
 
-## CI/CD
+## Vérification locale (état au 18/06/2026)
 
-Le workflow GitHub Actions (`.github/workflows/build_test_react.yml`) sur la branche `master` :
-
-1. installe les dépendances et exécute les tests Jest ;
-2. build l'app (`404.html` inclus) et lance les tests Cypress ;
-3. envoie la couverture à Codecov ;
-4. publie le package npm si la version locale est nouvelle ;
-5. déploie l'application sur **GitHub Pages**.
-
-Workflows complémentaires :
-
-- `.github/workflows/docker.yml` — stack MySQL / Adminer / API / React + tests infra et E2E Docker ;
-- `.github/workflows/production.yml` — déploiement de l'API sur **Vercel** (région `cdg1`).
-
-Voir [DOCKER.md](./DOCKER.md) pour la stack locale.
-
-Les tests doivent réussir avant toute publication npm ou déploiement Pages.
+| Vérification | Résultat |
+|--------------|----------|
+| `npm test` | 160/160 ✅, 100 % couverture |
+| `npm run build` | ✅, `build/404.html` généré |
+| Docker `compose ps` | db, adminer, server, react — healthy ✅ |
+| API locale `GET /users` + login admin | ✅ |
+| API prod Vercel | ✅ |
+| GitHub Pages `/` + `404.html` | ✅ |
+| GitHub Pages sous-URLs (`/list`, `/admin/login`) | SPA via `404.html` ✅ |
 
 ## Historique des versions npm
 
-Le pipeline publie automatiquement lorsqu'une nouvelle version est détectée dans `package.json` :
-
-- versions **patch** : `0.1.x`, `0.2.1`, `0.3.1`…
-- versions **minor** : `0.2.0`, `0.3.0`…
+Publication automatique si la version dans `package.json` est nouvelle (actuellement `0.5.0`).

@@ -14,6 +14,15 @@ beforeEach(() => {
   axios.create.mockReturnValue({ get: mockGet, post: jest.fn() });
 });
 
+test('affiche la page 404 pour une route inconnue', () => {
+  mockGet.mockResolvedValueOnce({ data: { users: [] } });
+
+  renderWithRouter(<App />, { route: '/page-inexistante' });
+
+  expect(screen.getByTestId('not-found-page')).toBeInTheDocument();
+  expect(screen.getByText('Page introuvable')).toBeInTheDocument();
+});
+
 test('affiche la page d accueil et 0 utilisateur quand l api renvoie une liste vide', async () => {
   mockGet.mockResolvedValueOnce({ data: { users: [] } });
 
