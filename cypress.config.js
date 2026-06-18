@@ -9,18 +9,24 @@ const normalizedPublicUrl = publicUrl.endsWith('/')
 
 const DEFAULT_API_URL = 'http://localhost:8000';
 
+function readBakedApiBaseUrl() {
+  const bakedPath = path.join(__dirname, 'build', '.cypress-api-base-url');
+  if (!fs.existsSync(bakedPath)) {
+    return '';
+  }
+
+  return fs.readFileSync(bakedPath, 'utf8').trim().replace(/\/$/, '');
+}
+
 function resolveApiBaseUrl() {
+  const fromBuild = readBakedApiBaseUrl();
+  if (fromBuild) {
+    return fromBuild;
+  }
+
   const fromEnv = process.env.REACT_APP_API_URL;
   if (fromEnv && String(fromEnv).trim()) {
     return String(fromEnv).trim().replace(/\/$/, '');
-  }
-
-  const bakedPath = path.join(__dirname, 'build', '.cypress-api-base-url');
-  if (fs.existsSync(bakedPath)) {
-    const fromBuild = fs.readFileSync(bakedPath, 'utf8').trim();
-    if (fromBuild) {
-      return fromBuild.replace(/\/$/, '');
-    }
   }
 
   return DEFAULT_API_URL;

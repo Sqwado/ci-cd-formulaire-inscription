@@ -52,15 +52,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate docs and build app
+      - name: Generate docs and build app for Cypress
         env:
           PUBLIC_URL: /ci-cd-formulaire-inscription
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_API_URL: http://localhost:8000
+          REACT_APP_OFFLINE_MODE: false
         run: |
-          export REACT_APP_API_URL="${REACT_APP_API_URL:-http://localhost:8000}"
           npm run jsdoc
           npm run build
-          printf '%s' "$REACT_APP_API_URL" > build/.cypress-api-base-url
+          printf '%s' 'http://localhost:8000' > build/.cypress-api-base-url
           test -f build/404.html
 
       - name: Prepare static server for Cypress
@@ -82,12 +82,25 @@ jobs:
         uses: cypress-io/github-action@v7
         env:
           PUBLIC_URL: /ci-cd-formulaire-inscription
-          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
         with:
           install: false
           start: npx --yes serve dist-server -l 3000
           wait-on: 'http://localhost:3000/ci-cd-formulaire-inscription'
           spec: cypress/e2e/{api-errors,home,list,registration,admin,routing}.cy.js
+
+      - name: Rebuild for GitHub Pages
+        if: github.event_name == 'push'
+        env:
+          PUBLIC_URL: /ci-cd-formulaire-inscription
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
+          REACT_APP_OFFLINE_MODE: false
+        run: |
+          if [ -z "${REACT_APP_API_URL}" ]; then
+            REACT_APP_API_URL=http://localhost:8000
+          fi
+          export REACT_APP_API_URL
+          npm run build
+          test -f build/404.html
 
       - name: Setup Pages
         if: github.event_name == 'push'
