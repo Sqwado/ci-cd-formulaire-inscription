@@ -8,11 +8,14 @@ import mysql.connector
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from mysql.connector import pooling
 from pydantic import BaseModel, Field
 
 app = FastAPI()
 origins = ["*"]
 security = HTTPBearer(auto_error=False)
+
+_db_pool = None
 
 app.add_middleware(
     CORSMiddleware,
@@ -47,15 +50,25 @@ class AdminLogin(BaseModel):
     password: str = Field(min_length=1)
 
 
-def get_db_connection():
-    try:
-        return mysql.connector.connect(
+def get_db_pool():
+    global _db_pool
+    if _db_pool is None:
+        _db_pool = pooling.MySQLConnectionPool(
+            pool_name="ynov_pool",
+            pool_size=2,
+            pool_reset_session=True,
+            host=os.getenv("MYSQL_HOST"),
+            port=int(os.getenv("MYSQL_PORT", "3306")),
             database=os.getenv("MYSQL_DATABASE"),
             user=os.getenv("MYSQL_USER"),
             password=os.getenv("MYSQL_PASSWORD") or os.getenv("MYSQL_ROOT_PASSWORD"),
-            port=int(os.getenv("MYSQL_PORT", "3306")),
-            host=os.getenv("MYSQL_HOST"),
         )
+    return _db_pool
+
+
+def get_db_connection():
+    try:
+        return get_db_pool().get_connection()
     except mysql.connector.Error as error:
         raise HTTPException(status_code=503, detail=f"Database unavailable: {error}") from error
 
@@ -149,21 +162,12 @@ def get_current_admin(
 
     try:
         payload = jwt.decode(credentials.credentials, get_jwt_secret(), algorithms=["HS256"])
-        admin_id = int(payload["sub"])
+        return {
+            "id": int(payload["sub"]),
+            "email": payload["email"],
+        }
     except (jwt.PyJWTError, ValueError, KeyError) as error:
         raise HTTPException(status_code=401, detail="Invalid token") from error
-
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    try:
-        cursor.execute("SELECT id, email FROM admins WHERE id = %s", (admin_id,))
-        admin = cursor.fetchone()
-        if not admin:
-            raise HTTPException(status_code=401, detail="Admin not found")
-        return admin
-    finally:
-        cursor.close()
-        conn.close()
 
 
 @app.post("/auth/login")

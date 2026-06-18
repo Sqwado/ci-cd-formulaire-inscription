@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Route, Routes, useLocation } from 'react-router-dom';
+import { Route, Routes } from 'react-router-dom';
 import './App.css';
 import { countUsers } from './api/api';
 import AdminRoute from './components/AdminRoute/AdminRoute';
@@ -11,7 +11,6 @@ import ListPage from './pages/ListPage';
 import RegistrationPage from './pages/RegistrationPage';
 
 function App() {
-  const location = useLocation();
   const [usersCount, setUsersCount] = useState(0);
 
   useEffect(() => {
@@ -36,7 +35,7 @@ function App() {
     return () => {
       isMounted = false;
     };
-  }, [location]);
+  }, []);
 
   return (
     <div className="App">
