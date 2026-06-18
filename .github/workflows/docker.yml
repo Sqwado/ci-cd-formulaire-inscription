@@ -150,7 +150,9 @@ jobs:
         run: docker compose -f docker-compose.yml stop react
 
       - name: Build offline app
-        run: PUBLIC_URL=/ REACT_APP_OFFLINE_MODE=true npm run build
+        run: |
+          PUBLIC_URL=/ REACT_APP_OFFLINE_MODE=true REACT_APP_API_URL=http://localhost:8000 npm run build
+          printf '%s' 'http://localhost:8000' > build/.cypress-api-base-url
 
       - name: Cypress run (offline sync)
         uses: cypress-io/github-action@v7

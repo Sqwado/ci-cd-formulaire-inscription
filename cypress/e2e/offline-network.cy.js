@@ -1,4 +1,4 @@
-const { apiUrl } = require('../support/apiConfig');
+const { apiPathRegex } = require('../support/apiConfig');
 
 describe('Tests en mode Offline - Reseau coupe', () => {
   beforeEach(() => {
@@ -6,7 +6,7 @@ describe('Tests en mode Offline - Reseau coupe', () => {
   });
 
   it("devrait afficher un message d'erreur quand le réseau est coupé", () => {
-    cy.intercept('POST', apiUrl('/users'), {
+    cy.intercept('POST', apiPathRegex('/users'), {
       statusCode: 500,
       body: { detail: 'Erreur serveur' }
     }).as('syncRequest');

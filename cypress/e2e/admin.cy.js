@@ -1,11 +1,9 @@
-const { getApiBaseUrl } = require('../support/apiConfig');
+const { apiPathRegex } = require('../support/apiConfig');
 
 describe('Administration', () => {
-  const apiBase = () => getApiBaseUrl();
-
   beforeEach(() => {
     cy.mockUsersApi([]);
-    cy.intercept('POST', `${apiBase()}/auth/login`, {
+    cy.intercept('POST', apiPathRegex('/auth/login'), {
       statusCode: 200,
       body: { token: 'test-admin-token', email: 'loise.fenoll@ynov.com' }
     }).as('adminLogin');
@@ -24,7 +22,7 @@ describe('Administration', () => {
   });
 
   it('affiche une erreur si les identifiants sont invalides', () => {
-    cy.intercept('POST', `${apiBase()}/auth/login`, {
+    cy.intercept('POST', apiPathRegex('/auth/login'), {
       statusCode: 401,
       body: { detail: 'Invalid credentials' }
     }).as('adminLoginError');
@@ -49,19 +47,17 @@ describe('Administration', () => {
       codePostal: '75001'
     };
 
-    const api = apiBase();
-
-    cy.intercept('GET', `${api}/users`, {
+    cy.intercept('GET', apiPathRegex('/users'), {
       statusCode: 200,
       body: { users: [{ id: user.id, prenom: user.prenom, nom: user.nom }] }
     }).as('getUsers');
 
-    cy.intercept('GET', `${api}/users/${user.id}`, {
+    cy.intercept('GET', apiPathRegex(`/users/${user.id}`), {
       statusCode: 200,
       body: user
     }).as('getUserDetail');
 
-    cy.intercept('DELETE', `${api}/users/${user.id}`, {
+    cy.intercept('DELETE', apiPathRegex(`/users/${user.id}`), {
       statusCode: 204
     }).as('deleteUser');
 
@@ -85,9 +81,7 @@ describe('Administration', () => {
   });
 
   it('permet de se deconnecter depuis la liste admin', () => {
-    const api = apiBase();
-
-    cy.intercept('GET', `${api}/users`, {
+    cy.intercept('GET', apiPathRegex('/users'), {
       statusCode: 200,
       body: { users: [] }
     }).as('getUsers');

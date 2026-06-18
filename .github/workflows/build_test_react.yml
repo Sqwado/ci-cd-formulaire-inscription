@@ -54,11 +54,13 @@ jobs:
 
       - name: Generate docs and build app
         env:
+          PUBLIC_URL: /ci-cd-formulaire-inscription
           REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
         run: |
           export REACT_APP_API_URL="${REACT_APP_API_URL:-http://localhost:8000}"
           npm run jsdoc
           npm run build
+          printf '%s' "$REACT_APP_API_URL" > build/.cypress-api-base-url
           test -f build/404.html
 
       - name: Prepare static server for Cypress
