@@ -1,3 +1,5 @@
+const networkOffline = Cypress.env('offline');
+
 describe('Tests en mode Offline', () => {
   beforeEach(() => {
     cy.fixture('users').then(({ validUser }) => {
@@ -9,29 +11,24 @@ describe('Tests en mode Offline', () => {
     });
   });
 
-  it('devrait se comporter correctement', () => {
-    if (!Cypress.env('offline')) {
+  (networkOffline ? describe.skip : describe)('Synchronisation', () => {
+    it('devrait se comporter correctement', () => {
       cy.intercept('POST', '**/users').as('syncRequest');
       cy.get('[data-cy="btn-sync"]').click();
-      cy.wait('@syncRequest').then((interception) => {
-        expect(interception.response.statusCode).to.equal(201);
-        expect(interception.request.body.email).to.exist;
-      });
-    }
+      cy.wait('@syncRequest').its('response.statusCode').should('eq', 201);
+      cy.get('@syncRequest').its('request.body.email').should('exist');
+    });
   });
 
-  it("devrait afficher un message d'erreur quand le réseau est coupé", () => {
-    if (Cypress.env('offline')) {
-      cy.log('Mode offline activé !');
+  (networkOffline ? describe : describe.skip)('Reseau coupe', () => {
+    it("devrait afficher un message d'erreur quand le réseau est coupé", () => {
       cy.intercept('POST', '**/users', {
         statusCode: 500,
         body: { detail: 'Erreur serveur' }
       }).as('syncRequest');
       cy.get('[data-cy="btn-sync"]').click();
-      cy.wait('@syncRequest').then((interception) => {
-        expect(interception.response.statusCode).to.equal(500);
-      });
+      cy.wait('@syncRequest').its('response.statusCode').should('eq', 500);
       cy.get('[data-testid="error-toast"]').should('be.visible');
-    }
+    });
   });
 });

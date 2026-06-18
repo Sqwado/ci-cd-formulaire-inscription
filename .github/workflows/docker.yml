@@ -157,7 +157,7 @@ jobs:
         uses: cypress-io/github-action@v7
         env:
           PUBLIC_URL: /
-          offline: true
+          CYPRESS_offline: true
         with:
           install: false
           spec: cypress/e2e/offline.cy.js
