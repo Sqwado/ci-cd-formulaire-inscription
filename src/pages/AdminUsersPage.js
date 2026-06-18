@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavLink from '../components/NavLink/NavLink';
 import PageNavigation from '../components/PageNavigation/PageNavigation';
@@ -12,18 +12,18 @@ function AdminUsersPage() {
   const { toastMessage, toastType, showToast } = useToast();
   const [users, setUsers] = useState([]);
 
-  const loadUsers = async () => {
+  const loadUsers = useCallback(async () => {
     try {
       const data = await fetchRegistrations();
       setUsers(data);
     } catch (error) {
       showToast(error.message || 'Impossible de charger les inscrits', 'error');
     }
-  };
+  }, [showToast]);
 
   useEffect(() => {
     loadUsers();
-  }, [showToast]);
+  }, [loadUsers]);
 
   const handleDelete = async (userId) => {
     try {

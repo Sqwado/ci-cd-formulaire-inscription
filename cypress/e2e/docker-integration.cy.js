@@ -8,7 +8,7 @@ describe('Integration Docker', () => {
   });
 
   it('inscrit un utilisateur via l api reelle', () => {
-    cy.fixture('users').then(({ validUser }) => {
+    cy.fixture('users').then(({ validUser, admin }) => {
       cy.intercept('POST', '**/users').as('createUser');
       cy.intercept('GET', '**/users').as('getUsers');
 
@@ -27,7 +27,29 @@ describe('Integration Docker', () => {
       cy.request('GET', 'http://localhost:8000/users').then((response) => {
         expect(response.status).to.eq(200);
         expect(response.body.users).to.have.length(1);
-        expect(response.body.users[0].email).to.eq(validUser.email);
+        expect(response.body.users[0]).to.deep.include({
+          prenom: validUser.prenom,
+          nom: validUser.nom
+        });
+        expect(response.body.users[0].email).to.be.undefined;
+
+        const userId = response.body.users[0].id;
+
+        cy.request('POST', 'http://localhost:8000/auth/login', {
+          email: admin.email,
+          password: admin.password
+        }).then((loginResponse) => {
+          expect(loginResponse.status).to.eq(200);
+
+          cy.request({
+            method: 'GET',
+            url: `http://localhost:8000/users/${userId}`,
+            headers: { Authorization: `Bearer ${loginResponse.body.token}` }
+          }).then((detailResponse) => {
+            expect(detailResponse.status).to.eq(200);
+            expect(detailResponse.body.email).to.eq(validUser.email);
+          });
+        });
       });
     });
   });
