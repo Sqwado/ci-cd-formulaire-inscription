@@ -6,7 +6,7 @@ const toApiUsers = (registrations) =>
   }));
 
 const getApiBaseUrl = () =>
-  (Cypress.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
+  (cy.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
 
 const apiUrl = (path = '') => `${getApiBaseUrl()}${path}`;
 

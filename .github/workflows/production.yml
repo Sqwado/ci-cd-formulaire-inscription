@@ -36,7 +36,7 @@ jobs:
       - name: npm ci and test
         run: |
           npm ci
-          pip install pytest httpx
+          pip install -r server/requirements.txt pytest httpx
           npm test
           npm run test:server
 

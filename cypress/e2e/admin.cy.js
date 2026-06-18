@@ -1,6 +1,6 @@
 describe('Administration', () => {
   const apiBase = () =>
-    (Cypress.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
+    (cy.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
 
   beforeEach(() => {
     cy.mockUsersApi([]);
