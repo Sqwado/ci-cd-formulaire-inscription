@@ -14,7 +14,7 @@ describe('Tests en mode Offline', () => {
       cy.intercept('POST', '**/users').as('syncRequest');
       cy.get('[data-cy="btn-sync"]').click();
       cy.wait('@syncRequest').then((interception) => {
-        expect(interception.response.statusCode).to.equal(200);
+        expect(interception.response.statusCode).to.equal(201);
         expect(interception.request.body.email).to.exist;
       });
     }
