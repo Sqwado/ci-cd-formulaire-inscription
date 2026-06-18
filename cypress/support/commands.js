@@ -48,11 +48,15 @@ Cypress.Commands.add('mockUsersApiPostError', (statusCode = 500, message = 'Erre
 
 Cypress.Commands.add('visitHomeWithRegistrations', (registrations = []) => {
   cy.mockUsersApi(registrations);
-  cy.visit('/', {
-    onBeforeLoad(win) {
-      win.localStorage.clear();
-    }
-  });
+  cy.visit('/');
+});
+
+Cypress.Commands.add('visitHomeDocker', () => {
+  cy.visit('/');
+});
+
+Cypress.Commands.add('visitHomeOffline', () => {
+  cy.visit('/');
 });
 
 Cypress.Commands.add('visitListWithRegistrations', (registrations = []) => {

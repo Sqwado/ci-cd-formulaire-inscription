@@ -1,5 +1,11 @@
 import axios from 'axios';
-import { countUsers, createRegistration, fetchRegistrations } from './api';
+import {
+  clearPendingRegistrations,
+  countUsers,
+  createRegistration,
+  fetchRegistrations,
+  syncRegistrations
+} from './api';
 
 jest.mock('axios');
 
@@ -27,7 +33,7 @@ const sampleRegistration = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  localStorage.clear();
+  clearPendingRegistrations();
   process.env.REACT_APP_OFFLINE_MODE = 'false';
   process.env.REACT_APP_API_URL = 'http://localhost:8000';
   axios.create.mockReturnValue({ get: mockGet, post: mockPost });
@@ -50,12 +56,9 @@ describe('countUsers', () => {
     await expect(countUsers()).rejects.toThrow('API indisponible');
   });
 
-  it('utilise le localStorage en mode offline', async () => {
+  it('utilise la file d attente en mode offline', async () => {
     process.env.REACT_APP_OFFLINE_MODE = 'true';
-    localStorage.setItem(
-      'registrations',
-      JSON.stringify([{ nom: 'Dupont', prenom: 'Jean', email: 'a@b.com' }])
-    );
+    await createRegistration(sampleRegistration);
 
     await expect(countUsers()).resolves.toBe(1);
     expect(mockGet).not.toHaveBeenCalled();
@@ -106,10 +109,18 @@ describe('fetchRegistrations', () => {
     expect(registrations[0].prenom).toBe('Jean');
     expect(registrations[0].nom).toBe('Dupont');
   });
+
+  it('retourne les inscriptions en attente en mode offline', async () => {
+    process.env.REACT_APP_OFFLINE_MODE = 'true';
+    await createRegistration(sampleRegistration);
+
+    await expect(fetchRegistrations()).resolves.toEqual([sampleRegistration]);
+    expect(mockGet).not.toHaveBeenCalled();
+  });
 });
 
 describe('createRegistration', () => {
-  it('envoie un POST sans cache local en mode online', async () => {
+  it('envoie un POST en mode online', async () => {
     mockPost.mockImplementationOnce(() =>
       Promise.resolve({
         data: {
@@ -121,20 +132,47 @@ describe('createRegistration', () => {
 
     await expect(createRegistration(sampleRegistration)).resolves.toEqual(sampleRegistration);
     expect(mockPost).toHaveBeenCalledWith('/users', sampleRegistration);
-    expect(localStorage.getItem('registrations')).toBeNull();
   });
 
-  it('met en cache localement en mode offline', async () => {
+  it('met en file d attente en mode offline', async () => {
     process.env.REACT_APP_OFFLINE_MODE = 'true';
 
     await expect(createRegistration(sampleRegistration)).resolves.toEqual(sampleRegistration);
     expect(mockPost).not.toHaveBeenCalled();
-    expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([sampleRegistration]);
+    await expect(fetchRegistrations()).resolves.toEqual([sampleRegistration]);
   });
 
   it('propage l erreur API', async () => {
     mockPost.mockImplementationOnce(() => Promise.reject(new Error('Erreur POST')));
 
     await expect(createRegistration(sampleRegistration)).rejects.toThrow('Erreur POST');
+  });
+});
+
+describe('syncRegistrations', () => {
+  it('envoie les inscriptions en attente vers l api', async () => {
+    process.env.REACT_APP_OFFLINE_MODE = 'true';
+    await createRegistration(sampleRegistration);
+
+    mockPost.mockImplementationOnce(() =>
+      Promise.resolve({
+        data: {
+          id: 1,
+          ...sampleRegistration
+        }
+      })
+    );
+
+    await expect(syncRegistrations()).resolves.toEqual([sampleRegistration]);
+    expect(mockPost).toHaveBeenCalledWith('/users', sampleRegistration);
+    await expect(fetchRegistrations()).resolves.toEqual([]);
+  });
+
+  it('propage l erreur API', async () => {
+    process.env.REACT_APP_OFFLINE_MODE = 'true';
+    await createRegistration(sampleRegistration);
+    mockPost.mockImplementationOnce(() => Promise.reject(new Error('Erreur sync')));
+
+    await expect(syncRegistrations()).rejects.toThrow('Erreur sync');
   });
 });

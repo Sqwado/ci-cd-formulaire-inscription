@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { createRegistration, fetchRegistrations, isOfflineMode } from '../api/api';
+import { createRegistration, fetchRegistrations } from '../api/api';
 import NavLink from '../components/NavLink/NavLink';
 import PageNavigation from '../components/PageNavigation/PageNavigation';
 import RegistrationForm from '../components/RegistrationForm/RegistrationForm';
@@ -7,7 +7,7 @@ import Toast from '../components/Toast/Toast';
 import { DOCS_URL } from '../constants/navigation';
 import { useRegistrationForm } from '../hooks/useRegistrationForm';
 import { useToast } from '../hooks/useToast';
-import { getRegistrations, validateFormData } from '../module/module';
+import { validateFormData } from '../module/module';
 import './RegistrationPage.css';
 
 function RegistrationPage() {
@@ -35,13 +35,8 @@ function RegistrationPage() {
     try {
       const validatedData = validateFormData(new FormData(e.target));
       await createRegistration(validatedData);
-      let highlightIndex;
-      if (isOfflineMode()) {
-        highlightIndex = getRegistrations().length - 1;
-      } else {
-        const registrations = await fetchRegistrations();
-        highlightIndex = registrations.length - 1;
-      }
+      const registrations = await fetchRegistrations();
+      const highlightIndex = registrations.length - 1;
       navigate('/list', { state: { highlightIndex } });
     } catch (error) {
       showToast(error.message || 'Une erreur est survenue', 'error');

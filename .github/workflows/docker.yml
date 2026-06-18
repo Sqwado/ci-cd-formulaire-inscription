@@ -99,3 +99,61 @@ jobs:
               exit 1
             fi
           done
+
+      - name: Test infra
+        run: |
+          curl -fsS http://localhost:8000/users | jq -e '.users | type == "array"'
+          curl -fsS -o /dev/null http://localhost:3000/
+          curl -fsS -o /dev/null http://localhost:8080/
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Cypress run (stack Docker)
+        uses: cypress-io/github-action@v7
+        env:
+          PUBLIC_URL: /
+        with:
+          install: false
+          spec: cypress/e2e/docker-integration.cy.js
+          wait-on: 'http://localhost:3000'
+
+      - name: Stop react for offline Cypress
+        run: docker compose -f docker-compose.yml stop react
+
+      - name: Build offline app
+        run: PUBLIC_URL=/ REACT_APP_OFFLINE_MODE=true npm run build
+
+      - name: Cypress run (offline sync)
+        uses: cypress-io/github-action@v7
+        env:
+          PUBLIC_URL: /
+        with:
+          install: false
+          spec: cypress/e2e/offline.cy.js
+          start: npx --yes serve -s build -l 3000
+          wait-on: 'http://localhost:3000'
+
+      - name: Stop backend
+        run: docker compose -f docker-compose.yml stop server
+
+      - name: Cypress run (offline reseau coupe)
+        uses: cypress-io/github-action@v7
+        env:
+          PUBLIC_URL: /
+          offline: true
+        with:
+          install: false
+          spec: cypress/e2e/offline.cy.js
+          start: npx --yes serve -s build -l 3000
+          wait-on: 'http://localhost:3000'
+
+      - name: Tear down docker compose
+        if: always()
+        run: docker compose -f docker-compose.yml down -v

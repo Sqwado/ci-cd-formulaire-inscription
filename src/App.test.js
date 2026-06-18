@@ -9,7 +9,6 @@ const mockGet = jest.fn();
 
 beforeEach(() => {
   jest.clearAllMocks();
-  localStorage.clear();
   process.env.REACT_APP_OFFLINE_MODE = 'false';
   process.env.REACT_APP_API_URL = 'http://localhost:8000';
   axios.create.mockReturnValue({ get: mockGet, post: jest.fn() });

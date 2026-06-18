@@ -6,7 +6,7 @@ import RegistrationsList from '../components/RegistrationsList/RegistrationsList
 import Toast from '../components/Toast/Toast';
 import { DOCS_URL } from '../constants/navigation';
 import { useToast } from '../hooks/useToast';
-import { fetchRegistrations } from '../api/api';
+import { fetchRegistrations, isOfflineMode, syncRegistrations } from '../api/api';
 import './ListPage.css';
 
 const HIGHLIGHT_DURATION = 4000;
@@ -61,6 +61,18 @@ function ListPage() {
     return () => clearTimeout(timeoutId);
   }, [highlightedIndex, registrations]);
 
+  const handleSync = async () => {
+    try {
+      const syncedRegistrations = await syncRegistrations();
+      setRegistrations(syncedRegistrations);
+      showToast('Synchronisation réussie.', 'success');
+    } catch (error) {
+      const message =
+        error.response?.data?.detail || error.message || 'Erreur de synchronisation';
+      showToast(message, 'error');
+    }
+  };
+
   return (
     <>
       <div className="list-page" data-testid="list-page">
@@ -71,6 +83,12 @@ function ListPage() {
           highlightedIndex={highlightedIndex}
           testId="list-registrations-section"
         />
+
+        {isOfflineMode() && (
+          <button type="button" data-cy="btn-sync" onClick={handleSync}>
+            Synchroniser
+          </button>
+        )}
 
         <PageNavigation variant="card" ariaLabel="Navigation liste">
           <NavLink to="/" testId="go-to-home">

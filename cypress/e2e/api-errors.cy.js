@@ -9,11 +9,7 @@ describe('Gestion des erreurs API', () => {
 
   it('affiche un toast d erreur sur la liste quand le GET echoue', () => {
     cy.mockUsersApiGetError();
-    cy.visit('/', {
-      onBeforeLoad(win) {
-        win.localStorage.clear();
-      }
-    });
+    cy.visit('/');
     cy.wait('@getUsersError');
     cy.goToList();
     cy.wait('@getUsersError');

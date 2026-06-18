@@ -24,8 +24,17 @@ const fillValidForm = () => {
   fireEvent.change(screen.getByTestId('codePostal'), { target: { value: '75001' } });
 };
 
+const expectedRegistration = {
+  nom: 'Dupont',
+  prenom: 'Jean',
+  email: 'jean.dupont@email.com',
+  dateOfBirth: '1990-01-01',
+  ville: 'Paris',
+  codePostal: '75001'
+};
+
 beforeEach(() => {
-  localStorage.clear();
+  api.clearPendingRegistrations();
   process.env.REACT_APP_OFFLINE_MODE = 'true';
 });
 
@@ -62,7 +71,6 @@ test('affiche les erreurs de champs et un toast global lors d une soumission inv
   expect(screen.getByTestId('ville-error')).toBeInTheDocument();
   expect(screen.getByTestId('codePostal-error')).toBeInTheDocument();
   expect(screen.getByTestId('error-toast')).toHaveTextContent('Veuillez corriger les erreurs du formulaire.');
-  expect(localStorage.getItem('registrations')).toBeNull();
 });
 
 test('soumet un formulaire valide, redirige vers la liste et met en evidence la nouvelle ligne', async () => {
@@ -76,31 +84,13 @@ test('soumet un formulaire valide, redirige vers la liste et met en evidence la 
     expect(screen.getByTestId('registration-item')).toHaveTextContent('Jean Dupont');
   });
   expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
-
-  expect(JSON.parse(localStorage.getItem('registrations'))).toEqual([
-    {
-      nom: 'Dupont',
-      prenom: 'Jean',
-      email: 'jean.dupont@email.com',
-      dateOfBirth: '1990-01-01',
-      ville: 'Paris',
-      codePostal: '75001'
-    }
-  ]);
+  await expect(api.fetchRegistrations()).resolves.toEqual([expectedRegistration]);
 });
 
 test('soumet un formulaire valide en mode api et redirige vers la liste', async () => {
   process.env.REACT_APP_OFFLINE_MODE = 'false';
-  const registration = {
-    nom: 'Dupont',
-    prenom: 'Jean',
-    email: 'jean.dupont@email.com',
-    dateOfBirth: '1990-01-01',
-    ville: 'Paris',
-    codePostal: '75001'
-  };
-  const createSpy = jest.spyOn(api, 'createRegistration').mockResolvedValue(registration);
-  const fetchSpy = jest.spyOn(api, 'fetchRegistrations').mockResolvedValue([registration]);
+  const createSpy = jest.spyOn(api, 'createRegistration').mockResolvedValue(expectedRegistration);
+  const fetchSpy = jest.spyOn(api, 'fetchRegistrations').mockResolvedValue([expectedRegistration]);
 
   renderRegistrationWithRoutes();
   fillValidForm();
@@ -110,7 +100,6 @@ test('soumet un formulaire valide en mode api et redirige vers la liste', async 
     expect(screen.getByTestId('list-page')).toBeInTheDocument();
     expect(screen.getByTestId('registration-item')).toHaveClass('registration-item-highlight');
   });
-  expect(localStorage.getItem('registrations')).toBeNull();
   createSpy.mockRestore();
   fetchSpy.mockRestore();
 });
