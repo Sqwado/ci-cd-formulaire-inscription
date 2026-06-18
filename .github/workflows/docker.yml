@@ -122,6 +122,9 @@ jobs:
             npm ci
           fi
 
+      - name: Reset database before integration tests
+        run: docker compose -f docker-compose.yml exec -T db mysql -uroot -pci_test_password ynov_ci -e "DELETE FROM users;"
+
       - name: Cypress run (stack Docker)
         uses: cypress-io/github-action@v7
         env:
