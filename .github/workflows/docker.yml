@@ -53,6 +53,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Use Node.js 24
+        uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Create .env file
         run: |
           cat > .env <<'EOF'
@@ -106,14 +115,12 @@ jobs:
           curl -fsS -o /dev/null http://localhost:3000/
           curl -fsS -o /dev/null http://localhost:8080/
 
-      - name: Use Node.js 24
-        uses: actions/setup-node@v5
-        with:
-          node-version: 24
-          cache: npm
-
-      - name: Install dependencies
-        run: npm ci
+      - name: Ensure node_modules is writable
+        run: |
+          if [ -d node_modules ] && [ ! -w node_modules ]; then
+            sudo rm -rf node_modules
+            npm ci
+          fi
 
       - name: Cypress run (stack Docker)
         uses: cypress-io/github-action@v7

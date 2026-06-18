@@ -70,6 +70,7 @@ jobs:
           install: false
           start: npx --yes serve dist-server -l 3000
           wait-on: 'http://localhost:3000/ci-cd-formulaire-inscription'
+          spec: cypress/e2e/{api-errors,home,list,registration}.cy.js
 
       - name: Setup Pages
         if: github.event_name == 'push'

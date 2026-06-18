@@ -8,6 +8,10 @@ const normalizedPublicUrl = publicUrl.endsWith("/")
 module.exports = defineConfig({
   e2e: {
     baseUrl: `http://localhost:3000${normalizedPublicUrl}`,
+    excludeSpecPattern: [
+      "**/docker-integration.cy.js",
+      "**/offline.cy.js",
+    ],
     setupNodeEvents(on, config) {
       // implement node event listeners here
     },
