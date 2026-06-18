@@ -1,10 +1,40 @@
 describe('Administration', () => {
+  const apiBase = () =>
+    (Cypress.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
+
   beforeEach(() => {
     cy.mockUsersApi([]);
-    cy.intercept('POST', '**/auth/login', {
+    cy.intercept('POST', `${apiBase()}/auth/login`, {
       statusCode: 200,
       body: { token: 'test-admin-token', email: 'loise.fenoll@ynov.com' }
     }).as('adminLogin');
+  });
+
+  it('redirige vers le login si un visiteur accede a /admin/users', () => {
+    cy.visit('/admin/users');
+    cy.url().should('include', '/admin/login');
+    cy.get('[data-testid="admin-login-page"]').should('be.visible');
+  });
+
+  it('charge la page de connexion via une URL directe', () => {
+    cy.visit('/admin/login');
+    cy.get('[data-testid="admin-login-page"]').should('be.visible');
+    cy.get('[data-testid="admin-login-form"]').should('be.visible');
+  });
+
+  it('affiche une erreur si les identifiants sont invalides', () => {
+    cy.intercept('POST', `${apiBase()}/auth/login`, {
+      statusCode: 401,
+      body: { detail: 'Invalid credentials' }
+    }).as('adminLoginError');
+
+    cy.visit('/admin/login');
+    cy.get('[data-testid="admin-email"]').type('wrong@ynov.com');
+    cy.get('[data-testid="admin-password"]').type('wrong-password');
+    cy.get('[data-testid="admin-login-submit"]').click();
+    cy.wait('@adminLoginError');
+    cy.get('[data-testid="error-toast"]').should('contain', 'Invalid credentials');
+    cy.url().should('include', '/admin/login');
   });
 
   it('permet a un admin de se connecter et supprimer un inscrit', () => {
@@ -18,17 +48,19 @@ describe('Administration', () => {
       codePostal: '75001'
     };
 
-    cy.intercept('GET', '**/users', {
+    const api = apiBase();
+
+    cy.intercept('GET', `${api}/users`, {
       statusCode: 200,
       body: { users: [{ id: user.id, prenom: user.prenom, nom: user.nom }] }
     }).as('getUsers');
 
-    cy.intercept('GET', `**/users/${user.id}`, {
+    cy.intercept('GET', `${api}/users/${user.id}`, {
       statusCode: 200,
       body: user
     }).as('getUserDetail');
 
-    cy.intercept('DELETE', `**/users/${user.id}`, {
+    cy.intercept('DELETE', `${api}/users/${user.id}`, {
       statusCode: 204
     }).as('deleteUser');
 
@@ -49,5 +81,25 @@ describe('Administration', () => {
     cy.get('[data-testid="admin-delete-user"]').click();
     cy.wait('@deleteUser');
     cy.url().should('include', '/admin/users');
+  });
+
+  it('permet de se deconnecter depuis la liste admin', () => {
+    const api = apiBase();
+
+    cy.intercept('GET', `${api}/users`, {
+      statusCode: 200,
+      body: { users: [] }
+    }).as('getUsers');
+
+    cy.visit('/admin/login');
+    cy.get('[data-testid="admin-email"]').type('loise.fenoll@ynov.com');
+    cy.get('[data-testid="admin-password"]').type('PvdrTAzTeR247sDnAZBr');
+    cy.get('[data-testid="admin-login-submit"]').click();
+    cy.wait('@adminLogin');
+    cy.get('[data-testid="admin-users-page"]').should('be.visible');
+
+    cy.get('[data-testid="admin-logout"]').click();
+    cy.url().should('include', '/admin/login');
+    cy.get('[data-testid="admin-login-page"]').should('be.visible');
   });
 });

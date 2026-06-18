@@ -5,14 +5,19 @@ const toApiUsers = (registrations) =>
     nom: registration.nom
   }));
 
+const getApiBaseUrl = () =>
+  (Cypress.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '');
+
+const apiUrl = (path = '') => `${getApiBaseUrl()}${path}`;
+
 Cypress.Commands.add('mockUsersApi', (registrations = []) => {
   let remoteUsers = toApiUsers(registrations);
 
-  cy.intercept('GET', '**/users', (req) => {
+  cy.intercept('GET', apiUrl('/users'), (req) => {
     req.reply({ statusCode: 200, body: { users: remoteUsers } });
   }).as('getUsers');
 
-  cy.intercept('POST', '**/users', (req) => {
+  cy.intercept('POST', apiUrl('/users'), (req) => {
     remoteUsers = [
       ...remoteUsers,
       {
@@ -29,14 +34,14 @@ Cypress.Commands.add('mockUsersApi', (registrations = []) => {
 });
 
 Cypress.Commands.add('mockUsersApiGetError', (statusCode = 503, message = 'API indisponible') => {
-  cy.intercept('GET', '**/users', {
+  cy.intercept('GET', apiUrl('/users'), {
     statusCode,
     body: { detail: message }
   }).as('getUsersError');
 });
 
 Cypress.Commands.add('mockUsersApiPostError', (statusCode = 500, message = 'Erreur serveur') => {
-  cy.intercept('POST', '**/users', {
+  cy.intercept('POST', apiUrl('/users'), {
     statusCode,
     body: { detail: message }
   }).as('createUserError');

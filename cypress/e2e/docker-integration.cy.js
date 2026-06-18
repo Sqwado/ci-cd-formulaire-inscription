@@ -1,6 +1,8 @@
 describe('Integration Docker', () => {
+  const apiBase = 'http://localhost:8000';
+
   it('affiche 0 inscrit au demarrage', () => {
-    cy.intercept('GET', '**/users').as('getUsers');
+    cy.intercept('GET', `${apiBase}/users`).as('getUsers');
     cy.visitHomeDocker();
     cy.wait('@getUsers');
     cy.assertHomePage();
@@ -9,8 +11,8 @@ describe('Integration Docker', () => {
 
   it('inscrit un utilisateur via l api reelle', () => {
     cy.fixture('users').then(({ validUser, admin }) => {
-      cy.intercept('POST', '**/users').as('createUser');
-      cy.intercept('GET', '**/users').as('getUsers');
+      cy.intercept('POST', `${apiBase}/users`).as('createUser');
+      cy.intercept('GET', `${apiBase}/users`).as('getUsers');
 
       cy.visitHomeDocker();
       cy.wait('@getUsers');

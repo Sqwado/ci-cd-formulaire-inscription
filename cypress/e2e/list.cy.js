@@ -31,4 +31,14 @@ describe('Liste des inscrits', () => {
     cy.assertRegistrationListCount(0);
     cy.get('[data-testid="list-registrations-section"]').should('be.visible');
   });
+
+  it('n affiche pas l email dans la liste publique', () => {
+    cy.fixture('users').then(({ validUser }) => {
+      cy.visitListWithRegistrations([validUser]);
+      cy.get('[data-testid="registration-item"]')
+        .should('contain', `${validUser.prenom} ${validUser.nom}`)
+        .and('not.contain', validUser.email)
+        .and('not.contain', validUser.ville);
+    });
+  });
 });

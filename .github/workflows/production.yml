@@ -36,7 +36,9 @@ jobs:
       - name: npm ci and test
         run: |
           npm ci
+          pip install pytest httpx
           npm test
+          npm run test:server
 
       - name: Install uv
         uses: astral-sh/setup-uv@v7

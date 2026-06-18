@@ -19,7 +19,7 @@ Application React avec formulaire d'inscription, persistance **MySQL** via une A
 
 | Critère (notation) | Implémentation | État |
 |--------------------|----------------|------|
-| Tests UT/IT + couverture (4 pts) | Jest — **160 tests**, **100 %** couverture (admin inclus) | ✅ |
+| Tests UT/IT + couverture (4 pts) | Jest — **177 tests**, **100 %** couverture + **14 tests** API Python | ✅ |
 | Architecture Docker mysql/python/adminer/react (4 pts) | `docker-compose.yml` — 4 services healthy | ✅ |
 | Tests d'infrastructure (4 pts) | `docker.yml` — healthchecks + `curl` API/login/React/Adminer | ✅ |
 | Tests E2E Cypress (4 pts) | 8 specs (mock, Docker, offline, admin) | ✅ |
@@ -104,12 +104,19 @@ npm run build
 npm test
 ```
 
-**160 tests**, **18 suites**, **100 %** de couverture (admin, API, pages, composants).
+**177 tests** Jest, **20 suites**, **100 %** de couverture front.  
+**14 tests** pytest sur l'API (`server/test_serveur.py`).  
+**1 test** Node sur le script `copy-spa-404.js`.
 
 | Type | Fichiers |
 |------|----------|
-| UT | `module.test.js`, `api.test.js`, `hooks/*.test.js`, `components/**/*.test.js` |
-| IT | `App.test.js`, `pages/*.test.js` (dont `Admin*`) |
+| UT | `module.test.js`, `api.test.js`, `hooks/*.test.js`, `components/**/*.test.js`, `constants/navigation.test.js` |
+| IT | `App.test.js` (toutes les routes + 404), `pages/*.test.js` |
+
+```bash
+npm test              # Jest + script build
+npm run test:server   # pytest API
+```
 
 ### Tests end-to-end (Cypress)
 
@@ -120,17 +127,19 @@ npm run cypress    # ou npm run cypress:run
 
 | Fichier | Scénario |
 |---------|----------|
+| `routing.cy.js` | URLs directes gérées + page 404 pour routes inconnues |
 | `home.cy.js` | Accueil, compteur, navigation |
-| `registration.cy.js` | Inscription valide / invalide |
-| `list.cy.js` | Liste, navigation, **URL directe `/list`** |
-| `admin.cy.js` | Login admin, détail privé, suppression |
+| `registration.cy.js` | Inscription valide / invalide, URL directe `/register` |
+| `list.cy.js` | Liste compacte (sans email), URL directe `/list` |
+| `admin.cy.js` | Garde admin, login/logout, suppression, URL directe |
 | `api-errors.cy.js` | Erreurs API et toasts |
 | `docker-integration.cy.js` | Stack Docker, API réelle, données privées admin |
 | `offline-sync.cy.js` | Synchronisation hors-ligne |
 | `offline-network.cy.js` | Réseau coupé |
 
-En CI mock (`build_test_react.yml`) : `home`, `registration`, `list`, `admin`, `api-errors`.  
-En CI Docker (`docker.yml`) : `docker-integration`, `offline-sync`, `offline-network`.
+> Les intercepts Cypress ciblent l'URL API exacte (`REACT_APP_API_URL`) pour ne pas confondre `/admin/users` (front) avec `/users` (API).
+
+En CI mock (`build_test_react.yml`) : `api-errors`, `home`, `list`, `registration`, `admin`, `routing`.
 
 ## Architecture
 
@@ -220,7 +229,8 @@ Sortie dans `public/docs/` (publiée sur Pages lors du build CI).
 
 | Vérification | Résultat |
 |--------------|----------|
-| `npm test` | 160/160 ✅, 100 % couverture |
+| `npm test` | 177/177 Jest ✅ + script build ✅ |
+| `npm run test:server` | 14/14 pytest API ✅ |
 | `npm run build` | ✅, `build/404.html` généré |
 | Docker `compose ps` | db, adminer, server, react — healthy ✅ |
 | API locale `GET /users` + login admin | ✅ |

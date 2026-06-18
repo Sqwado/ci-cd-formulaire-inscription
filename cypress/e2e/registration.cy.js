@@ -57,4 +57,11 @@ describe('Inscription', () => {
     cy.fillValidRegistrationForm();
     cy.get('[data-testid="submit"]').should('be.enabled');
   });
+
+  it('charge le formulaire via une URL directe', () => {
+    cy.mockUsersApi([]);
+    cy.visit('/register');
+    cy.get('[data-testid="registration-page"]').should('be.visible');
+    cy.get('[data-testid="submit"]').should('be.disabled');
+  });
 });

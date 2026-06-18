@@ -80,11 +80,12 @@ jobs:
         uses: cypress-io/github-action@v7
         env:
           PUBLIC_URL: /ci-cd-formulaire-inscription
+          REACT_APP_API_URL: ${{ secrets.REACT_APP_API_URL }}
         with:
           install: false
           start: npx --yes serve dist-server -l 3000
           wait-on: 'http://localhost:3000/ci-cd-formulaire-inscription'
-          spec: cypress/e2e/{api-errors,home,list,registration,admin}.cy.js
+          spec: cypress/e2e/{api-errors,home,list,registration,admin,routing}.cy.js
 
       - name: Setup Pages
         if: github.event_name == 'push'

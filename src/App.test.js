@@ -23,6 +23,40 @@ test('affiche la page 404 pour une route inconnue', () => {
   expect(screen.getByText('Page introuvable')).toBeInTheDocument();
 });
 
+test('affiche la page inscription sur /register', () => {
+  mockGet.mockResolvedValue({ data: { users: [] } });
+
+  renderWithRouter(<App />, { route: '/register' });
+
+  expect(screen.getByTestId('registration-page')).toBeInTheDocument();
+});
+
+test('affiche la page liste sur /list', async () => {
+  mockGet.mockResolvedValue({ data: { users: [] } });
+
+  renderWithRouter(<App />, { route: '/list' });
+
+  await waitFor(() => {
+    expect(screen.getByTestId('list-page')).toBeInTheDocument();
+  });
+});
+
+test('affiche la page login admin sur /admin/login', () => {
+  mockGet.mockResolvedValue({ data: { users: [] } });
+
+  renderWithRouter(<App />, { route: '/admin/login' });
+
+  expect(screen.getByTestId('admin-login-page')).toBeInTheDocument();
+});
+
+test('redirige vers le login admin si non authentifie sur /admin/users', () => {
+  mockGet.mockResolvedValue({ data: { users: [] } });
+
+  renderWithRouter(<App />, { route: '/admin/users' });
+
+  expect(screen.getByTestId('admin-login-page')).toBeInTheDocument();
+});
+
 test('affiche la page d accueil et 0 utilisateur quand l api renvoie une liste vide', async () => {
   mockGet.mockResolvedValueOnce({ data: { users: [] } });
 

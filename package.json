@@ -1,7 +1,7 @@
 {
   "name": "ci-cd-formulaire-inscription",
   "homepage": "https://sqwado.github.io/ci-cd-formulaire-inscription",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "private": false,
   "dependencies": {
     "@testing-library/dom": "^10.4.1",
@@ -22,7 +22,9 @@
     "postbuild": "node scripts/copy-spa-404.js",
     "build-npm-ci": "NODE_ENV=production && rm -rf dist && mkdir dist && npx babel src --out-dir dist --copy-files",
     "build-npm": "SET NODE_ENV=production && rm -rf dist && mkdir dist && npx babel src --out-dir dist --copy-files",
-    "test": "react-scripts test --setupFiles=./.jest/setEnvVars.js --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js --collectCoverageFrom=!src/test/**",
+    "test": "react-scripts test --setupFiles=./.jest/setEnvVars.js --watchAll=false --coverage --collectCoverageFrom=src/**/*.{js,jsx} --collectCoverageFrom=!src/reportWebVitals.js --collectCoverageFrom=!src/index.js --collectCoverageFrom=!src/test/** && npm run test:scripts",
+    "test:scripts": "node scripts/copy-spa-404.test.js",
+    "test:server": "cd server && python -m pytest test_serveur.py -v",
     "eject": "react-scripts eject",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d build",

@@ -126,6 +126,39 @@ describe('fetchRegistrations', () => {
     await expect(fetchRegistrations()).resolves.toEqual([sampleRegistration]);
     expect(mockGet).not.toHaveBeenCalled();
   });
+
+  it('propage l erreur API', async () => {
+    mockGet.mockRejectedValueOnce(new Error('GET indisponible'));
+
+    await expect(fetchRegistrations()).rejects.toThrow('GET indisponible');
+  });
+
+  it('accepte une reponse API sous forme de tableau', async () => {
+    mockGet.mockResolvedValueOnce({ data: [sampleUser] });
+
+    const registrations = await fetchRegistrations();
+
+    expect(registrations).toHaveLength(1);
+    expect(registrations[0].prenom).toBe('Jean');
+  });
+
+  it('mappe les champs manquants avec des valeurs par defaut', async () => {
+    mockGet.mockResolvedValueOnce({
+      data: { users: [{ id: 5 }] }
+    });
+
+    await expect(fetchRegistrations()).resolves.toEqual([
+      {
+        id: 5,
+        nom: '',
+        prenom: '',
+        email: '',
+        dateOfBirth: '',
+        ville: '',
+        codePostal: ''
+      }
+    ]);
+  });
 });
 
 describe('createRegistration', () => {
@@ -208,6 +241,12 @@ describe('loginAdmin', () => {
     });
     expect(getAdminToken()).toBe('admin-token');
   });
+
+  it('propage l erreur API', async () => {
+    mockPost.mockRejectedValueOnce(new Error('Login impossible'));
+
+    await expect(loginAdmin('admin@test.com', 'wrong')).rejects.toThrow('Login impossible');
+  });
 });
 
 describe('fetchUserDetail', () => {
@@ -242,5 +281,13 @@ describe('deleteUser', () => {
     expect(mockDelete).toHaveBeenCalledWith('/users/1', {
       headers: { Authorization: 'Bearer admin-token' }
     });
+  });
+
+  it('supprime sans header si aucun token admin', async () => {
+    mockDelete.mockResolvedValueOnce({ status: 204 });
+
+    await deleteUser(2);
+
+    expect(mockDelete).toHaveBeenCalledWith('/users/2', { headers: {} });
   });
 });

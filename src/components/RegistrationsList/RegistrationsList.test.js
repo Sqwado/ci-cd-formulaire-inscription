@@ -26,3 +26,28 @@ test('affiche les inscriptions et peut mettre en evidence une ligne', () => {
   expect(item).toHaveTextContent('Jean Dupont');
   expect(item).toHaveClass('registration-item-highlight');
 });
+
+test('affiche uniquement le nom et le prenom en mode compact', () => {
+  render(<RegistrationsList registrations={sampleRegistrations} compact />);
+
+  const item = screen.getByTestId('registration-item');
+  expect(item).toHaveTextContent('Jean Dupont');
+  expect(item).not.toHaveTextContent('jean.dupont@email.com');
+  expect(item).not.toHaveTextContent('Paris');
+});
+
+test('utilise le titre, le testId et le message vide personnalises', () => {
+  render(
+    <RegistrationsList
+      registrations={[]}
+      title="Participants"
+      testId="custom-list"
+      emptyMessage="Aucun participant."
+      headingLevel="h3"
+    />
+  );
+
+  expect(screen.getByRole('heading', { level: 3, name: 'Participants' })).toBeInTheDocument();
+  expect(screen.getByTestId('custom-list')).toBeInTheDocument();
+  expect(screen.getByTestId('no-registrations')).toHaveTextContent('Aucun participant.');
+});

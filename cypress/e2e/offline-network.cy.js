@@ -4,7 +4,7 @@ describe('Tests en mode Offline - Reseau coupe', () => {
   });
 
   it("devrait afficher un message d'erreur quand le réseau est coupé", () => {
-    cy.intercept('POST', '**/users', {
+    cy.intercept('POST', `${(Cypress.env('REACT_APP_API_URL') || 'http://localhost:8000').replace(/\/$/, '')}/users`, {
       statusCode: 500,
       body: { detail: 'Erreur serveur' }
     }).as('syncRequest');

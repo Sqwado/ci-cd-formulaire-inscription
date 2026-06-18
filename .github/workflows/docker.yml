@@ -122,6 +122,11 @@ jobs:
           curl -fsS -o /dev/null http://localhost:3000/
           curl -fsS -o /dev/null http://localhost:8080/
 
+      - name: Run API unit tests
+        run: |
+          pip install pytest httpx
+          cd server && python -m pytest test_serveur.py -v
+
       - name: Ensure node_modules is writable
         run: |
           if [ -d node_modules ] && [ ! -w node_modules ]; then

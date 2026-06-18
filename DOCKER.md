@@ -98,8 +98,9 @@ Sur chaque push / PR vers `master` :
 1. **Build Docker Hub** (push uniquement) — images `frontend` et `backend`
 2. **Docker Compose** — démarrage des 4 services
 3. **Tests d'infrastructure** — healthchecks + `curl` API / React / Adminer / login admin
-4. **Cypress E2E Docker** — `cypress/e2e/docker-integration.cy.js` (API réelle)
-5. **Cypress offline** — `offline-sync.cy.js`, `offline-network.cy.js`
+4. **Tests unitaires API** — `pytest server/test_serveur.py`
+5. **Cypress E2E Docker** — `cypress/e2e/docker-integration.cy.js` (API réelle)
+6. **Cypress offline** — `offline-sync.cy.js`, `offline-network.cy.js`
 
 ### Secrets GitHub requis
 
