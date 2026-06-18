@@ -31,8 +31,9 @@ function AdminLoginPage() {
 
   return (
     <>
-      <section className="admin-login-page" data-testid="admin-login-page">
+      <section className="admin-card admin-login-page" data-testid="admin-login-page">
         <h1>Connexion administrateur</h1>
+        <p>Accédez à l&apos;espace de gestion des inscrits.</p>
         <form onSubmit={onSubmit} data-testid="admin-login-form">
           <label htmlFor="admin-email">Email</label>
           <input
@@ -54,12 +55,17 @@ function AdminLoginPage() {
             required
           />
 
-          <button type="submit" data-testid="admin-login-submit" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="nav-link nav-link--primary"
+            data-testid="admin-login-submit"
+            disabled={isSubmitting}
+          >
             Se connecter
           </button>
         </form>
 
-        <PageNavigation variant="card" ariaLabel="Navigation admin login">
+        <PageNavigation variant="inline" ariaLabel="Navigation admin login">
           <NavLink to="/" testId="go-to-home">
             Accueil
           </NavLink>

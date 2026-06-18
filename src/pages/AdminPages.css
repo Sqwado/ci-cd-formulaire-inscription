@@ -1,0 +1,154 @@
+.admin-page-wrapper {
+  width: min(760px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.admin-card {
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.22);
+  color: #0f172a;
+}
+
+.admin-card h1 {
+  margin: 0 0 1rem;
+  font-size: 1.8rem;
+  color: #0f172a;
+}
+
+.admin-card p {
+  margin: 0;
+  color: #475569;
+  line-height: 1.5;
+}
+
+.admin-card form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-top: 0.5rem;
+}
+
+.admin-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.admin-card input {
+  padding: 11px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.95rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.admin-card input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18);
+}
+
+.admin-card form > button[type='submit'] {
+  align-self: flex-end;
+  margin-top: 4px;
+}
+
+.admin-users-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.admin-users-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 14px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.admin-users-list li:last-child {
+  border-bottom: none;
+}
+
+.admin-users-list li span {
+  font-weight: 600;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.admin-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.admin-user-detail dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 1.25rem;
+  margin: 0 0 1.5rem;
+  padding: 16px;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.admin-user-detail dt {
+  font-weight: 600;
+  color: #475569;
+}
+
+.admin-user-detail dd {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.admin-login-page .page-navigation {
+  margin-top: 1.25rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.admin-card button.nav-link:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: #94a3b8;
+  transform: none;
+}
+
+@media (max-width: 640px) {
+  .admin-card {
+    padding: 20px;
+  }
+
+  .admin-users-list li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .admin-user-actions {
+    width: 100%;
+  }
+
+  .admin-user-detail dl {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+
+  .admin-card form > button[type='submit'] {
+    width: 100%;
+    align-self: stretch;
+  }
+}

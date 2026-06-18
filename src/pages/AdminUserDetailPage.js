@@ -51,7 +51,7 @@ function AdminUserDetailPage() {
   if (!user) {
     return (
       <>
-        <section className="admin-user-detail-page" data-testid="admin-user-detail-page">
+        <section className="admin-card admin-user-detail" data-testid="admin-user-detail-page">
           <p data-testid="admin-user-loading">Chargement...</p>
         </section>
         <Toast message={toastMessage} type={toastType} />
@@ -61,31 +61,38 @@ function AdminUserDetailPage() {
 
   return (
     <>
-      <section className="admin-user-detail-page" data-testid="admin-user-detail-page">
-        <h1>
-          {user.prenom} {user.nom}
-        </h1>
-        <dl data-testid="admin-user-private-info">
-          <dt>Email</dt>
-          <dd data-testid="admin-user-email">{user.email}</dd>
-          <dt>Date de naissance</dt>
-          <dd data-testid="admin-user-birthdate">{user.dateOfBirth}</dd>
-          <dt>Ville</dt>
-          <dd data-testid="admin-user-city">{user.ville}</dd>
-          <dt>Code postal</dt>
-          <dd data-testid="admin-user-postal">{user.codePostal}</dd>
-        </dl>
+      <div className="admin-page-wrapper">
+        <section className="admin-card admin-user-detail" data-testid="admin-user-detail-page">
+          <h1>
+            {user.prenom} {user.nom}
+          </h1>
+          <dl data-testid="admin-user-private-info">
+            <dt>Email</dt>
+            <dd data-testid="admin-user-email">{user.email}</dd>
+            <dt>Date de naissance</dt>
+            <dd data-testid="admin-user-birthdate">{user.dateOfBirth}</dd>
+            <dt>Ville</dt>
+            <dd data-testid="admin-user-city">{user.ville}</dd>
+            <dt>Code postal</dt>
+            <dd data-testid="admin-user-postal">{user.codePostal}</dd>
+          </dl>
 
-        <button type="button" data-testid="admin-delete-user" onClick={handleDelete}>
-          Supprimer cet inscrit
-        </button>
+          <button
+            type="button"
+            className="nav-link nav-link--danger"
+            data-testid="admin-delete-user"
+            onClick={handleDelete}
+          >
+            Supprimer cet inscrit
+          </button>
+        </section>
 
         <PageNavigation variant="card" ariaLabel="Navigation admin detail">
           <NavLink to="/admin/users" testId="go-to-admin-users">
             Retour à la liste admin
           </NavLink>
         </PageNavigation>
-      </section>
+      </div>
 
       <Toast message={toastMessage} type={toastType} />
     </>

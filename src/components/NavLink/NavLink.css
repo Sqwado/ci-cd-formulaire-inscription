@@ -39,6 +39,26 @@
   background: #334155;
 }
 
+.nav-link--outline {
+  color: #2563eb;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.nav-link--outline:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+}
+
+.nav-link--danger {
+  color: #ffffff;
+  background: #dc2626;
+}
+
+.nav-link--danger:hover {
+  background: #b91c1c;
+}
+
 .nav-link--on-dark {
   color: #f8fafc;
   background: rgba(15, 23, 42, 0.35);

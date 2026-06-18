@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import NavLink from '../components/NavLink/NavLink';
 import PageNavigation from '../components/PageNavigation/PageNavigation';
 import Toast from '../components/Toast/Toast';
@@ -43,47 +43,56 @@ function AdminUsersPage() {
 
   return (
     <>
-      <section className="admin-users-page" data-testid="admin-users-page">
-        <h1>Gestion admin des inscrits</h1>
+      <div className="admin-page-wrapper">
+        <section className="admin-card" data-testid="admin-users-page">
+          <h1>Gestion admin des inscrits</h1>
 
-        {users.length === 0 ? (
-          <p data-testid="admin-no-users">Aucun inscrit.</p>
-        ) : (
-          <ul data-testid="admin-users-list">
-            {users.map((user) => (
-              <li key={user.id} data-testid="admin-user-item">
-                <span>
-                  {user.prenom} {user.nom}
-                </span>
-                <div className="admin-user-actions">
-                  <Link
-                    to={`/admin/users/${user.id}`}
-                    data-testid={`admin-view-user-${user.id}`}
-                  >
-                    Voir détail
-                  </Link>
-                  <button
-                    type="button"
-                    data-testid={`admin-delete-user-${user.id}`}
-                    onClick={() => handleDelete(user.id)}
-                  >
-                    Supprimer
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          {users.length === 0 ? (
+            <p data-testid="admin-no-users">Aucun inscrit.</p>
+          ) : (
+            <ul className="admin-users-list" data-testid="admin-users-list">
+              {users.map((user) => (
+                <li key={user.id} data-testid="admin-user-item">
+                  <span>
+                    {user.prenom} {user.nom}
+                  </span>
+                  <div className="admin-user-actions">
+                    <NavLink
+                      to={`/admin/users/${user.id}`}
+                      variant="outline"
+                      testId={`admin-view-user-${user.id}`}
+                    >
+                      Voir détail
+                    </NavLink>
+                    <button
+                      type="button"
+                      className="nav-link nav-link--danger"
+                      data-testid={`admin-delete-user-${user.id}`}
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      Supprimer
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
 
         <PageNavigation variant="card" ariaLabel="Navigation admin users">
-          <button type="button" data-testid="admin-logout" onClick={handleLogout}>
+          <button
+            type="button"
+            className="nav-link nav-link--secondary"
+            data-testid="admin-logout"
+            onClick={handleLogout}
+          >
             Déconnexion
           </button>
           <NavLink to="/" testId="go-to-home">
             Accueil
           </NavLink>
         </PageNavigation>
-      </section>
+      </div>
 
       <Toast message={toastMessage} type={toastType} />
     </>
