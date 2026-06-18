@@ -32,7 +32,8 @@ describe('Administration', () => {
       statusCode: 204
     }).as('deleteUser');
 
-    cy.visit('/admin/login');
+    cy.visit('/');
+    cy.get('[data-testid="go-to-admin-login"]').click();
     cy.get('[data-testid="admin-email"]').type('loise.fenoll@ynov.com');
     cy.get('[data-testid="admin-password"]').type('PvdrTAzTeR247sDnAZBr');
     cy.get('[data-testid="admin-login-submit"]').click();

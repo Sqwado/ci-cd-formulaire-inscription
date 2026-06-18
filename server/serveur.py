@@ -113,7 +113,11 @@ def seed_admin():
     if not email or not password:
         return
 
-    conn = get_db_connection()
+    try:
+        conn = get_db_connection()
+    except HTTPException:
+        return
+
     cursor = conn.cursor(dictionary=True)
     try:
         cursor.execute("SELECT id FROM admins WHERE email = %s", (email,))
@@ -125,6 +129,8 @@ def seed_admin():
             (email, hash_password(password)),
         )
         conn.commit()
+    except mysql.connector.Error:
+        conn.rollback()
     finally:
         cursor.close()
         conn.close()

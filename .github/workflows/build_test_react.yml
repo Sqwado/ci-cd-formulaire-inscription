@@ -64,6 +64,16 @@ jobs:
         run: |
           mkdir -p dist-server/ci-cd-formulaire-inscription
           cp -r build/* dist-server/ci-cd-formulaire-inscription/
+          cat > dist-server/serve.json <<'EOF'
+          {
+            "rewrites": [
+              {
+                "source": "/ci-cd-formulaire-inscription/**",
+                "destination": "/ci-cd-formulaire-inscription/index.html"
+              }
+            ]
+          }
+          EOF
 
       - name: Cypress run
         uses: cypress-io/github-action@v7
