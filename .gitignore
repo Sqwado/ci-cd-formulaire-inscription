@@ -36,3 +36,12 @@ yarn-error.log*
 # python
 server/__pycache__/
 *.pyc
+
+# terraform / registry
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+registry/*.pem
+registry/inventory.ini
