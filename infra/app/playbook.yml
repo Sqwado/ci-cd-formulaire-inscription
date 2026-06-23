@@ -1,6 +1,7 @@
 ---
 - name: Déploiement application (pull depuis registry privé)
   hosts: app_hosts
+  gather_facts: false
   become: true
   vars:
     project_dir: "/home/ubuntu/app-inscription"
@@ -20,6 +21,15 @@
     jwt_secret: "{{ lookup('env', 'JWT_SECRET') }}"
 
   tasks:
+    - name: Attendre que SSH soit disponible
+      wait_for_connection:
+        delay: 15
+        timeout: 300
+        sleep: 10
+
+    - name: Collecter les facts
+      setup:
+
     - name: Vérification des variables obligatoires
       assert:
         that:

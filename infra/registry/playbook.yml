@@ -1,6 +1,7 @@
 ---
 - name: Déploiement Registry Sécurisé (HTTPS / Nginx)
   hosts: registry_hosts
+  gather_facts: false
   become: true
   vars:
     project_dir: "/home/ubuntu/registry-simple"
@@ -9,6 +10,15 @@
     registry_admin_password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
 
   tasks:
+    - name: Attendre que SSH soit disponible
+      wait_for_connection:
+        delay: 15
+        timeout: 300
+        sleep: 10
+
+    - name: Collecter les facts
+      setup:
+
     - name: Vérification des variables registry
       assert:
         that:

@@ -109,6 +109,11 @@ output "instance_ip" {
   value       = aws_instance.registry_server.public_ip
 }
 
+output "instance_id" {
+  description = "ID de l'instance EC2 registry"
+  value       = aws_instance.registry_server.id
+}
+
 output "ssh_private_key_file" {
   description = "Chemin local de la clé SSH privée"
   value       = local_file.ssh_key.filename

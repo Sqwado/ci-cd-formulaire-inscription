@@ -59,6 +59,13 @@ jobs:
         working-directory: infra/registry
         run: terraform output -raw ansible_inventory > inventory.ini
 
+      - name: Wait for registry EC2 to be ready
+        working-directory: infra/registry
+        run: |
+          aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
+          echo "Instance status OK, waiting for SSH daemon..."
+          sleep 30
+
       - name: Deploy registry (Ansible)
         working-directory: infra/registry
         run: |
@@ -124,6 +131,13 @@ jobs:
       - name: Generate app inventory.ini
         working-directory: infra/app
         run: terraform output -raw ansible_inventory > inventory.ini
+
+      - name: Wait for app EC2 to be ready
+        working-directory: infra/app
+        run: |
+          aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
+          echo "Instance status OK, waiting for SSH daemon..."
+          sleep 30
 
       - name: Deploy application (Ansible)
         working-directory: infra/app
