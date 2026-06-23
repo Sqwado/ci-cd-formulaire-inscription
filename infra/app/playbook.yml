@@ -58,6 +58,15 @@
         groups: docker
         append: yes
 
+    - name: Recharger la session SSH (groupe docker)
+      meta: reset_connection
+
+    - name: Attendre SSH après reconnexion
+      wait_for_connection:
+        delay: 5
+        timeout: 120
+        sleep: 5
+
     - name: Création des dossiers
       file:
         path: "{{ item }}"
@@ -118,7 +127,6 @@
       changed_when: false
 
     - name: Login au registry privé
-      become_user: ubuntu
       environment:
         REGISTRY_PASS: "{{ registry_password }}"
         REGISTRY_USER: "{{ registry_username }}"
@@ -130,23 +138,26 @@
         executable: /bin/bash
       register: docker_login
       no_log: true
-      failed_when: docker_login.rc != 0
+
+    - name: Vérifier le login registry
+      fail:
+        msg: >-
+          docker login a échoué (code {{ docker_login.rc }}).
+          Vérifiez REGISTRY_USERNAME et REGISTRY_PASSWORD dans GitHub Secrets.
+      when: docker_login.rc != 0
 
     - name: Stop stack existante
-      become_user: ubuntu
       command: docker compose down
       args:
         chdir: "{{ project_dir }}"
       ignore_errors: yes
 
     - name: Pull des images
-      become_user: ubuntu
       command: docker compose pull
       args:
         chdir: "{{ project_dir }}"
 
     - name: Démarrage de la stack
-      become_user: ubuntu
       command: docker compose up -d
       args:
         chdir: "{{ project_dir }}"
@@ -170,7 +181,6 @@
       delay: 10
 
     - name: Statut des conteneurs
-      become_user: ubuntu
       command: docker compose ps
       args:
         chdir: "{{ project_dir }}"
