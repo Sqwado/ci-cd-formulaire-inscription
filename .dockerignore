@@ -9,13 +9,7 @@ node_modules
 .git
 .github
 
-# Code source (monté via volumes)
-src
-public
-server
-react
-
-# Base de données (montée sur le service db)
+# Base de données (montée sur le service db en dev local)
 db
 
 # Artefacts de build & tests
@@ -32,7 +26,13 @@ docker-compose.yml
 # Documentation & config hors build
 README.md
 DOCKER.md
+ARCHITECTURE.md
 babel.config.js
 jsdoc.config.json
 .gitignore
 .npmignore
+cypress
+rendu
+registry
+infra/registry
+infra/app

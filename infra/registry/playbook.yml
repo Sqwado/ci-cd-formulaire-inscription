@@ -1,0 +1,114 @@
+---
+- name: Déploiement Registry Sécurisé (HTTPS / Nginx)
+  hosts: registry_hosts
+  become: true
+  vars:
+    project_dir: "/home/ubuntu/registry-simple"
+    public_ip: "{{ ansible_host }}"
+    registry_admin_user: "{{ lookup('env', 'REGISTRY_USERNAME') }}"
+    registry_admin_password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
+
+  tasks:
+    - name: Vérification des variables registry
+      assert:
+        that:
+          - registry_admin_user | length > 0
+          - registry_admin_password | length > 0
+        fail_msg: "REGISTRY_USERNAME et REGISTRY_PASSWORD doivent être définis (GitHub Secrets)."
+
+    - name: Installation des paquets
+      apt:
+        update_cache: yes
+        name:
+          - docker.io
+          - docker-compose-v2
+          - apache2-utils
+          - python3-passlib
+          - openssl
+        state: present
+
+    - name: Ajout user au groupe docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Création des dossiers
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      loop:
+        - "{{ project_dir }}"
+        - "{{ project_dir }}/auth"
+        - "{{ project_dir }}/data"
+        - "{{ project_dir }}/ssl"
+        - "{{ project_dir }}/nginx"
+
+    - name: Génération mot de passe registry
+      htpasswd:
+        path: "{{ project_dir }}/auth/registry.password"
+        name: "{{ registry_admin_user }}"
+        password: "{{ registry_admin_password }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0640"
+        crypt_scheme: bcrypt
+
+    - name: Génération certificat SSL auto-signé
+      command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ project_dir }}/ssl/registry.key
+        -out {{ project_dir }}/ssl/registry.crt
+        -subj "/CN={{ public_ip }}"
+      args:
+        creates: "{{ project_dir }}/ssl/registry.crt"
+
+    - name: Ajustement des permissions du certificat SSL
+      file:
+        path: "{{ item }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      loop:
+        - "{{ project_dir }}/ssl/registry.crt"
+        - "{{ project_dir }}/ssl/registry.key"
+
+    - name: Copie de la configuration Nginx
+      template:
+        src: nginx.conf
+        dest: "{{ project_dir }}/nginx/nginx.conf"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+
+    - name: Copie du docker-compose.yml
+      template:
+        src: docker-compose.yml
+        dest: "{{ project_dir }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+
+    - name: Stop stack
+      command: docker compose stop
+      args:
+        chdir: "{{ project_dir }}"
+      ignore_errors: yes
+
+    - name: Démarrage de la stack
+      command: docker compose up --force-recreate -d
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Récupération du statut des conteneurs
+      command: docker compose ps
+      args:
+        chdir: "{{ project_dir }}"
+      register: compose_ps_output
+
+    - name: Affichage du statut final
+      debug:
+        msg: "{{ compose_ps_output.stdout_lines }}"

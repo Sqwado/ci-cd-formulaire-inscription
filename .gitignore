@@ -37,7 +37,7 @@ yarn-error.log*
 server/__pycache__/
 *.pyc
 
-# terraform / registry
+# terraform / infra
 **/.terraform/
 *.tfstate
 *.tfstate.*
@@ -45,3 +45,5 @@ server/__pycache__/
 *.tfvars.json
 registry/*.pem
 registry/inventory.ini
+infra/**/*.pem
+infra/**/inventory.ini

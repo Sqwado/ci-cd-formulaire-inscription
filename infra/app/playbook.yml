@@ -1,0 +1,152 @@
+---
+- name: Déploiement application (pull depuis registry privé)
+  hosts: app_hosts
+  become: true
+  vars:
+    project_dir: "/home/ubuntu/app-inscription"
+    registry_host: "{{ lookup('env', 'REGISTRY_HOST') }}"
+    registry_username: "{{ lookup('env', 'REGISTRY_USERNAME') }}"
+    registry_password: "{{ lookup('env', 'REGISTRY_PASSWORD') }}"
+    image_namespace: "{{ lookup('env', 'IMAGE_NAMESPACE') | default('inscription', true) }}"
+    backend_image: "{{ registry_host }}:443/{{ image_namespace }}/backend:latest"
+    frontend_image: "{{ registry_host }}:443/{{ image_namespace }}/frontend:latest"
+    mysql_root_password: "{{ lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+    mysql_database: "{{ lookup('env', 'MYSQL_DATABASE') }}"
+    mysql_user: "{{ lookup('env', 'MYSQL_USER') | default('root', true) }}"
+    mysql_password: "{{ lookup('env', 'MYSQL_PASSWORD') if (lookup('env', 'MYSQL_PASSWORD') | default('', true) | length > 0) else lookup('env', 'MYSQL_ROOT_PASSWORD') }}"
+    mysql_port: "{{ lookup('env', 'MYSQL_PORT') | default('3306', true) }}"
+    admin_email: "{{ lookup('env', 'ADMIN_EMAIL') }}"
+    admin_password: "{{ lookup('env', 'ADMIN_PASSWORD') }}"
+    jwt_secret: "{{ lookup('env', 'JWT_SECRET') }}"
+
+  tasks:
+    - name: Vérification des variables obligatoires
+      assert:
+        that:
+          - registry_host | length > 0
+          - registry_username | length > 0
+          - registry_password | length > 0
+          - mysql_root_password | length > 0
+          - mysql_database | length > 0
+          - admin_email | length > 0
+          - admin_password | length > 0
+          - jwt_secret | length > 0
+        fail_msg: "Variables d'environnement manquantes (voir .env.example / GitHub Secrets)."
+
+    - name: Installation des paquets
+      apt:
+        update_cache: yes
+        name:
+          - docker.io
+          - docker-compose-v2
+          - curl
+        state: present
+
+    - name: Ajout user au groupe docker
+      user:
+        name: ubuntu
+        groups: docker
+        append: yes
+
+    - name: Création des dossiers
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: ubuntu
+        group: ubuntu
+        mode: "0755"
+      loop:
+        - "{{ project_dir }}"
+        - "{{ project_dir }}/db"
+
+    - name: Copie des migrations SQL
+      copy:
+        src: "{{ playbook_dir }}/../../db/"
+        dest: "{{ project_dir }}/db/"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+
+    - name: Copie du docker-compose.yml
+      template:
+        src: docker-compose.yml
+        dest: "{{ project_dir }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+
+    - name: Configuration Docker daemon (registry insecure HTTPS)
+      copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "insecure-registries": ["{{ registry_host }}:443"]
+          }
+        mode: "0644"
+      notify: Restart docker
+
+    - name: Appliquer le redémarrage Docker si nécessaire
+      meta: flush_handlers
+
+    - name: Login au registry privé
+      become_user: ubuntu
+      shell: |
+        set -o pipefail
+        echo "{{ registry_password }}" | docker login {{ registry_host }}:443 -u "{{ registry_username }}" --password-stdin
+      args:
+        executable: /bin/bash
+      no_log: true
+
+    - name: Stop stack existante
+      become_user: ubuntu
+      command: docker compose down
+      args:
+        chdir: "{{ project_dir }}"
+      ignore_errors: yes
+
+    - name: Pull des images
+      become_user: ubuntu
+      command: docker compose pull
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Démarrage de la stack
+      become_user: ubuntu
+      command: docker compose up -d
+      args:
+        chdir: "{{ project_dir }}"
+
+    - name: Attente santé backend
+      uri:
+        url: "http://localhost:8000/users"
+        status_code: 200
+      register: backend_health
+      until: backend_health.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Attente santé frontend
+      uri:
+        url: "http://localhost:3000/"
+        status_code: 200
+      register: frontend_health
+      until: frontend_health.status == 200
+      retries: 30
+      delay: 10
+
+    - name: Statut des conteneurs
+      become_user: ubuntu
+      command: docker compose ps
+      args:
+        chdir: "{{ project_dir }}"
+      register: compose_ps_output
+
+    - name: Affichage du statut final
+      debug:
+        msg: "{{ compose_ps_output.stdout_lines }}"
+
+  handlers:
+    - name: Restart docker
+      service:
+        name: docker
+        state: restarted
