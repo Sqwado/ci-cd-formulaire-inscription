@@ -98,14 +98,39 @@
     - name: Appliquer le redémarrage Docker si nécessaire
       meta: flush_handlers
 
-    - name: Login au registry privé
+    - name: Attendre que Docker soit prêt après redémarrage
+      wait_for:
+        path: /var/run/docker.sock
+        state: present
+        delay: 5
+        timeout: 60
+
+    - name: Vérifier la connectivité vers le registry
       become_user: ubuntu
       shell: |
         set -o pipefail
-        echo "{{ registry_password }}" | docker login {{ registry_host }}:443 -u "{{ registry_username }}" --password-stdin
+        code=$(curl -ksS -o /dev/null -w "%{http_code}" "https://{{ registry_host }}:443/v2/")
+        echo "HTTP ${code}"
+        test "${code}" = "401" -o "${code}" = "200"
       args:
         executable: /bin/bash
+      register: registry_ping
+      changed_when: false
+
+    - name: Login au registry privé
+      become_user: ubuntu
+      environment:
+        REGISTRY_PASS: "{{ registry_password }}"
+        REGISTRY_USER: "{{ registry_username }}"
+        REGISTRY_URL: "{{ registry_host }}:443"
+      shell: |
+        set -o pipefail
+        printf '%s' "${REGISTRY_PASS}" | docker login "${REGISTRY_URL}" -u "${REGISTRY_USER}" --password-stdin
+      args:
+        executable: /bin/bash
+      register: docker_login
       no_log: true
+      failed_when: docker_login.rc != 0
 
     - name: Stop stack existante
       become_user: ubuntu
