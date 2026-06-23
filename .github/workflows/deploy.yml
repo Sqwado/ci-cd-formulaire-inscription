@@ -41,19 +41,36 @@ jobs:
       - name: Install Ansible
         run: pip install ansible
 
-      - name: Cache Terraform state (registry)
-        uses: actions/cache@v4
+      - name: Download registry Terraform state
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          path: infra/registry/terraform.tfstate
-          key: terraform-registry-state-${{ github.ref }}
+          name: terraform-registry-state
+          path: infra/registry
+
+      - name: Cleanup orphaned registry resources
+        if: hashFiles('infra/registry/terraform.tfstate') == ''
+        run: bash infra/scripts/cleanup-orphans.sh registry
 
       - name: Terraform init (registry)
         working-directory: infra/registry
         run: terraform init -input=false
 
       - name: Terraform apply (registry)
+        id: tf-apply-registry
         working-directory: infra/registry
         run: terraform apply -auto-approve -input=false
+
+      - name: Upload registry Terraform state
+        if: steps.tf-apply-registry.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-registry-state
+          path: |
+            infra/registry/terraform.tfstate
+            infra/registry/registry-key-terraform.pem
+          if-no-files-found: error
+          overwrite: true
 
       - name: Generate registry inventory.ini
         working-directory: infra/registry
@@ -77,19 +94,36 @@ jobs:
         working-directory: infra/registry
         run: echo "ip=$(terraform output -raw instance_ip)" >> "$GITHUB_OUTPUT"
 
-      - name: Cache Terraform state (app)
-        uses: actions/cache@v4
+      - name: Download app Terraform state
+        uses: actions/download-artifact@v4
+        continue-on-error: true
         with:
-          path: infra/app/terraform.tfstate
-          key: terraform-app-state-${{ github.ref }}
+          name: terraform-app-state
+          path: infra/app
+
+      - name: Cleanup orphaned app resources
+        if: hashFiles('infra/app/terraform.tfstate') == ''
+        run: bash infra/scripts/cleanup-orphans.sh app
 
       - name: Terraform init (app)
         working-directory: infra/app
         run: terraform init -input=false
 
       - name: Terraform apply (app)
+        id: tf-apply-app
         working-directory: infra/app
         run: terraform apply -auto-approve -input=false
+
+      - name: Upload app Terraform state
+        if: steps.tf-apply-app.outcome == 'success'
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-app-state
+          path: |
+            infra/app/terraform.tfstate
+            infra/app/app-key-terraform.pem
+          if-no-files-found: error
+          overwrite: true
 
       - name: Export app IP
         id: app
