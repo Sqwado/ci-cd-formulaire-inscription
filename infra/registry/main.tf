@@ -42,7 +42,7 @@ resource "tls_private_key" "pk" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "registry-key-terraform"
+  key_name   = "ci-inscription-registry-key"
   public_key = tls_private_key.pk.public_key_openssh
 }
 
@@ -53,7 +53,7 @@ resource "local_file" "ssh_key" {
 }
 
 resource "aws_security_group" "registry_sg" {
-  name        = "registry-sg-simple"
+  name        = "ci-inscription-registry-sg"
   description = "SSH, HTTP redirect, HTTPS (Nginx reverse proxy)"
 
   ingress {
@@ -100,7 +100,7 @@ resource "aws_instance" "registry_server" {
   }
 
   tags = {
-    Name = "Terraform-Registry-Server"
+    Name = "CI-Inscription-Registry-Server"
   }
 }
 

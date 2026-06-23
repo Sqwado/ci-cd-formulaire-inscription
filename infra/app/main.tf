@@ -42,7 +42,7 @@ resource "tls_private_key" "pk" {
 }
 
 resource "aws_key_pair" "generated_key" {
-  key_name   = "app-key-terraform"
+  key_name   = "ci-inscription-app-key"
   public_key = tls_private_key.pk.public_key_openssh
 }
 
@@ -53,7 +53,7 @@ resource "local_file" "ssh_key" {
 }
 
 resource "aws_security_group" "app_sg" {
-  name        = "app-sg-inscription"
+  name        = "ci-inscription-app-sg"
   description = "SSH, Frontend, Backend, Adminer"
 
   ingress {
@@ -108,7 +108,7 @@ resource "aws_instance" "app_server" {
   }
 
   tags = {
-    Name = "Terraform-App-Server"
+    Name = "CI-Inscription-App-Server"
   }
 }
 
