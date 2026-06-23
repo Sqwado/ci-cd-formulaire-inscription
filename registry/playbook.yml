@@ -1,14 +1,12 @@
 ---
-- name: Déploiement Registry Simple (HTTP)
+- name: Déploiement Registry Sécurisé (HTTPS / Nginx)
   hosts: registry_hosts
   become: true
   vars:
     project_dir: "/home/ubuntu/registry-simple"
-    # L'IP publique est récupérée automatiquement pour la config de l'UI
     public_ip: "{{ ansible_host }}"
 
   tasks:
-    # 1. Installation Docker
     - name: Installation des paquets
       apt:
         update_cache: yes
@@ -17,6 +15,7 @@
           - docker-compose-v2
           - apache2-utils
           - python3-passlib
+          - openssl
         state: present
 
     - name: Ajout user au groupe docker
@@ -25,7 +24,6 @@
         groups: docker
         append: yes
 
-    # 2. Dossiers
     - name: Création des dossiers
       file:
         path: "{{ item }}"
@@ -37,8 +35,9 @@
         - "{{ project_dir }}"
         - "{{ project_dir }}/auth"
         - "{{ project_dir }}/data"
+        - "{{ project_dir }}/ssl"
+        - "{{ project_dir }}/nginx"
 
-    # 3. Auth (Mot de passe)
     - name: Génération mot de passe (admin/admin123)
       htpasswd:
         path: "{{ project_dir }}/auth/registry.password"
@@ -48,6 +47,33 @@
         group: ubuntu
         mode: 0640
         crypt_scheme: bcrypt
+
+    - name: Génération certificat SSL auto-signé
+      command: >
+        openssl req -x509 -nodes -days 365 -newkey rsa:2048
+        -keyout {{ project_dir }}/ssl/registry.key
+        -out {{ project_dir }}/ssl/registry.crt
+        -subj "/CN={{ public_ip }}"
+      args:
+        creates: "{{ project_dir }}/ssl/registry.crt"
+
+    - name: Ajustement des permissions du certificat SSL
+      file:
+        path: "{{ item }}"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
+      loop:
+        - "{{ project_dir }}/ssl/registry.crt"
+        - "{{ project_dir }}/ssl/registry.key"
+
+    - name: Copie de la configuration Nginx
+      template:
+        src: nginx.conf
+        dest: "{{ project_dir }}/nginx/nginx.conf"
+        owner: ubuntu
+        group: ubuntu
+        mode: '0644'
 
     - name: Copie du docker-compose.yml
       template:
@@ -63,7 +89,6 @@
         chdir: "{{ project_dir }}"
       ignore_errors: yes
 
-    # 5. Start
     - name: Démarrage de la stack
       command: docker compose up --force-recreate -d
       args:

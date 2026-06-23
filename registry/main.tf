@@ -32,7 +32,7 @@ file_permission = "0400"
 }
 
 resource "aws_security_group" "registry_sg" {
-    name = "registry-sg-simple"
+    name        = "registry-sg-simple"
     description = "Allow SSH, HTTP (UI), Registry (5000)"
     ingress {
         description = "SSH"
@@ -42,16 +42,16 @@ resource "aws_security_group" "registry_sg" {
         cidr_blocks = ["0.0.0.0/0"]
     }
     ingress {
-        description = "Registry UI"
+        description = "HTTP redirect to HTTPS"
         from_port = 80
         to_port = 80
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
     ingress {
-        description = "Registry Docker API"
-        from_port = 5000
-        to_port = 5000
+        description = "HTTPS (Nginx reverse proxy)"
+        from_port = 443
+        to_port = 443
         protocol = "tcp"
         cidr_blocks = ["0.0.0.0/0"]
     }
