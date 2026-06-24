@@ -59,22 +59,23 @@ flowchart TB
 
 ## Pipeline CI/CD (`/.github/workflows/deploy.yml`)
 
-Déclenchement : **`workflow_dispatch`** (manuel).
+Déclenchement : **`workflow_dispatch`** (manuel, Zero Touch — aucune connexion SSH humaine).
 
 | Étape | Action |
 |-------|--------|
 | 1 | `terraform apply` → EC2 registry |
-| 2 | Génération `inventory.ini` (output Terraform) |
-| 3 | Ansible → déploiement registry sécurisé |
-| 4 | `terraform apply` → EC2 application |
-| 5 | Build & push `backend` et `frontend` sur le registry |
-| 6 | Génération `inventory.ini` applicatif |
-| 7 | Ansible → pull images + stack complète |
-| 8 | `curl` frontend, backend, adminer |
+| 2 | `terraform apply` → EC2 application |
+| 3 | Génération `inventory.ini` (outputs Terraform : IP + clé SSH volatile) |
+| 4 | Ansible → déploiement registry sécurisé (Nginx HTTPS, auth) |
+| 5 | Build & push `backend` et `frontend` sur le registry privé |
+| 6 | Ansible → login registry, pull images, `docker compose up` |
+| 7 | `curl` de validation (API, auth admin, frontend, Adminer) |
+
+> **Note :** l'ordre Build/Terraform du sujet est respecté fonctionnellement : le registry doit exister avant le `docker push`. Le state Terraform est conservé via artifacts GitHub entre les runs (évite de recréer les EC2 à chaque exécution). Un premier run `full` sans artifact recrée toute l'infrastructure.
 
 ## Sécurité
 
-- Tous les identifiants passent par **GitHub Secrets** (voir `.env.example`).
+- Tous les identifiants passent par **GitHub Secrets** (voir `.env.sample`).
 - Aucun mot de passe en dur dans les playbooks (variables d'environnement).
 - Registry derrière **HTTPS** (certificat auto-signé).
 - API registry non exposée directement (Nginx reverse proxy).

@@ -8,6 +8,7 @@ RUN npm ci
 COPY public public
 COPY src src
 COPY scripts scripts
+COPY jsdoc.config.json README.md ./
 
 ARG REACT_APP_API_URL
 ARG REACT_APP_OFFLINE_MODE=false
@@ -16,6 +17,7 @@ ENV REACT_APP_OFFLINE_MODE=$REACT_APP_OFFLINE_MODE
 ENV PUBLIC_URL=/
 ENV CI=false
 
+RUN npm run jsdoc
 RUN npm run build
 
 FROM nginx:alpine

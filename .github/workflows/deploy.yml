@@ -201,6 +201,8 @@ jobs:
     needs: [infrastructure, build]
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
 
@@ -300,3 +302,31 @@ jobs:
             echo "- API : http://${{ needs.infrastructure.outputs.app_ip }}:8000"
             echo "- Adminer : http://${{ needs.infrastructure.outputs.app_ip }}:8080"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate rendu.txt
+        env:
+          APP_IP: ${{ needs.infrastructure.outputs.app_ip }}
+          REGISTRY_IP: ${{ needs.infrastructure.outputs.registry_ip }}
+          REPO_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          bash infra/scripts/generate-rendu.sh "$APP_IP" "$REGISTRY_IP" "$REPO_URL"
+
+      - name: Upload rendu.txt artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendu
+          path: rendu.txt
+          if-no-files-found: error
+
+      - name: Commit rendu.txt
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add rendu.txt
+          if git diff --staged --quiet; then
+            echo "rendu.txt inchangé"
+          else
+            # [skip ci] évite les workflows push ; paths-ignore: rendu.txt en filet de sécurité
+            git commit -m "chore: update rendu.txt with deploy IPs [skip ci]"
+            git push
+          fi

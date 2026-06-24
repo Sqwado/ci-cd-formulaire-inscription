@@ -3,6 +3,8 @@ name: Vercel Production Deployment
 on:
   push:
     branches: [ master ]
+    paths-ignore:
+      - 'rendu.txt'
   pull_request:
     branches: [ master ]
 

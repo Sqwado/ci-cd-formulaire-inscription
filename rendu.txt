@@ -1,20 +1,17 @@
-# Livrable — Projet CI/CD Formulaire Inscription
+# Livrable — Projet Final Zero Touch
+# Ce fichier est régénéré automatiquement à chaque Deploy réussi.
+# IPs actuelles : lancer le workflow Deploy ou consulter le dernier artifact "rendu".
 
 Repository GitHub :
 https://github.com/Sqwado/ci-cd-formulaire-inscription
 
 IP publique — Application (Frontend / API / Adminer) :
-http://<APP_IP>:3000
-http://<APP_IP>:8000
-http://<APP_IP>:8080
+(voir dernier deploy — Summary GitHub Actions ou artifact rendu.txt)
 
 IP publique — Registry Docker privé (HTTPS) :
-https://<REGISTRY_IP>
-
-# Remplacer <APP_IP> et <REGISTRY_IP> après exécution du workflow Deploy
-# (résumé affiché dans l'onglet Summary de GitHub Actions).
+(voir dernier deploy — Summary GitHub Actions ou artifact rendu.txt)
 
 # Connexion au registry Docker :
 #   docker login <REGISTRY_IP>:443
-#   Utilisateur : valeur du secret REGISTRY_USERNAME (voir .env.example)
-#   Mot de passe  : valeur du secret REGISTRY_PASSWORD (voir .env.example)
+#   Utilisateur : secret GitHub REGISTRY_USERNAME (voir .env.sample)
+#   Mot de passe  : secret GitHub REGISTRY_PASSWORD (voir .env.sample)
