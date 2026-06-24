@@ -195,8 +195,6 @@ jobs:
           sbom: false
           build-args: |
             REACT_APP_API_URL=http://${{ needs.infrastructure.outputs.app_ip }}:8000
-          cache-from: type=gha,scope=${{ matrix.component }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
 
   # ── Déploiement app + validation ─────────────────────────────────────────
   deploy:
