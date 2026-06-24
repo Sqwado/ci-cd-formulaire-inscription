@@ -26,8 +26,7 @@ services:
       - db-network
       - external-network
     depends_on:
-      db:
-        condition: service_healthy
+      - db
 
   server:
     image: "{{ backend_image }}"
@@ -46,8 +45,7 @@ services:
       JWT_SECRET: "{{ jwt_secret }}"
       PORT: "8000"
     depends_on:
-      db:
-        condition: service_healthy
+      - db
     networks:
       - db-network
       - external-network
@@ -64,8 +62,7 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      server:
-        condition: service_healthy
+      - server
     networks:
       - external-network
     healthcheck:

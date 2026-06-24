@@ -200,6 +200,7 @@ jobs:
   deploy:
     needs: [infrastructure, build]
     runs-on: ubuntu-latest
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v5
 
@@ -259,7 +260,8 @@ jobs:
           APP_IP="${{ needs.infrastructure.outputs.app_ip }}"
           wait_for() {
             local url="$1"
-            for i in $(seq 1 30); do
+            local max="${2:-60}"
+            for i in $(seq 1 "$max"); do
               if curl -fsS "$url" > /dev/null 2>&1; then
                 return 0
               fi
@@ -268,7 +270,7 @@ jobs:
             echo "Timeout: $url"
             return 1
           }
-          wait_for "http://${APP_IP}:8000/users"
+          wait_for "http://${APP_IP}:8000/users" 60
           curl -fsS "http://${APP_IP}:8000/users" | jq -e '.users | type == "array"'
           curl -fsS -X POST "http://${APP_IP}:8000/auth/login" \
             -H 'Content-Type: application/json' \

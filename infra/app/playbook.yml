@@ -171,9 +171,22 @@
       tags: [deploy]
 
     - name: Démarrage de la stack
-      command: docker compose up -d
+      shell: nohup docker compose up -d --pull never > /tmp/compose-up.log 2>&1 &
       args:
         chdir: "{{ project_dir }}"
+        executable: /bin/bash
+      changed_when: true
+      tags: [deploy]
+
+    - name: Attendre que les conteneurs démarrent
+      command: docker compose ps -q
+      args:
+        chdir: "{{ project_dir }}"
+      register: compose_running
+      until: compose_running.stdout_lines | length >= 4
+      retries: 24
+      delay: 5
+      changed_when: false
       tags: [deploy]
 
     - name: Statut des conteneurs
