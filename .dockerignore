@@ -24,11 +24,9 @@ docker-compose.yml
 .dockerignore
 
 # Documentation & config hors build
-README.md
 DOCKER.md
 ARCHITECTURE.md
 babel.config.js
-jsdoc.config.json
 .gitignore
 .npmignore
 cypress
