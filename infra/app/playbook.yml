@@ -178,24 +178,29 @@
       changed_when: true
       tags: [deploy]
 
-    - name: Attendre que les conteneurs démarrent
-      command: docker compose ps -q
+    - name: Attendre que le conteneur MySQL existe
+      command: docker compose ps -q db
       args:
         chdir: "{{ project_dir }}"
-      register: compose_running
-      until: compose_running.stdout_lines | length >= 4
+      register: mysql_container
+      until: mysql_container.stdout | trim | length > 0
       retries: 24
       delay: 5
       changed_when: false
       tags: [deploy]
 
-    - name: Attendre que MySQL soit healthy
-      command: docker compose ps db
+    - name: Attendre que MySQL accepte les connexions
+      shell: |
+        docker compose exec -T db \
+          mysqladmin ping -h 127.0.0.1 -uroot -p"${MYSQL_ROOT_PASSWORD}" --silent
+      environment:
+        MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
       args:
         chdir: "{{ project_dir }}"
-      register: mysql_ps
-      until: "'(healthy)' in mysql_ps.stdout"
-      retries: 36
+        executable: /bin/bash
+      register: mysql_ping
+      until: mysql_ping.rc == 0
+      retries: 60
       delay: 5
       changed_when: false
       tags: [deploy]
