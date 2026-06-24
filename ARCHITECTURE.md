@@ -22,7 +22,7 @@ flowchart TB
         UI[docker-registry-ui]
     end
 
-    subgraph EC2A["EC2 Application — t3.small"]
+    subgraph EC2A["EC2 Application — t3.micro"]
         FE[Frontend nginx :3000]
         BE[FastAPI :8000]
         DB[(MySQL)]
@@ -52,7 +52,7 @@ flowchart TB
 
 | Composant | Rôle |
 |-----------|------|
-| **Terraform** | EC2 `t3.small`, clé SSH, security group (22, 3000, 8000, 8080) |
+| **Terraform** | EC2 `t3.micro`, clé SSH, security group (22, 3000, 8000, 8080) |
 | **Ansible** | Docker, login registry, pull images, `docker compose up` |
 | **Services** | MySQL, Adminer, FastAPI, React (nginx) |
 | **Images** | Tirées du registry privé (`<REGISTRY_IP>:443/inscription/...`) |

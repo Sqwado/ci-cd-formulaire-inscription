@@ -2,45 +2,53 @@ name: Deploy
 
 on:
   workflow_dispatch:
+    inputs:
+      scope:
+        description: "full = tout | application = images + app (registry déjà en place)"
+        type: choice
+        options:
+          - full
+          - application
+        default: full
 
 concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+  IMAGE_NAMESPACE: inscription
+
 jobs:
-  deploy:
+  # ── Infra : Terraform registry + app enchaînés, puis Ansible registry ──
+  infrastructure:
     runs-on: ubuntu-latest
+    outputs:
+      registry_ip: ${{ steps.ips.outputs.registry_ip }}
+      app_ip: ${{ steps.ips.outputs.app_ip }}
     env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
-      TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
       REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
-      MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-      MYSQL_DATABASE: ${{ secrets.MYSQL_DATABASE }}
-      MYSQL_USER: ${{ secrets.MYSQL_USER }}
-      MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
-      ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
-      ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
-      JWT_SECRET: ${{ secrets.JWT_SECRET }}
-      IMAGE_NAMESPACE: inscription
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v5
+      - uses: actions/checkout@v5
 
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
+      - uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION }}
 
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
 
-      - name: Install Ansible
-        run: pip install ansible
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-ansible-${{ runner.os }}-v1
 
+      - run: pip install ansible-core
+
+      # ── Registry state ───────────────────────────────────────────────────
       - name: Download registry Terraform state
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -49,20 +57,26 @@ jobs:
           path: infra/registry
 
       - name: Cleanup orphaned registry resources
-        if: hashFiles('infra/registry/terraform.tfstate') == ''
+        if: inputs.scope == 'full' && hashFiles('infra/registry/terraform.tfstate') == ''
         run: bash infra/scripts/cleanup-orphans.sh registry
 
       - name: Terraform init (registry)
         working-directory: infra/registry
         run: terraform init -input=false
 
+      - uses: actions/cache@v4
+        with:
+          path: infra/registry/.terraform
+          key: terraform-registry-${{ hashFiles('infra/registry/.terraform.lock.hcl') }}
+
       - name: Terraform apply (registry)
+        if: inputs.scope == 'full'
         id: tf-apply-registry
         working-directory: infra/registry
         run: terraform apply -auto-approve -input=false
 
       - name: Upload registry Terraform state
-        if: steps.tf-apply-registry.outcome == 'success'
+        if: inputs.scope == 'full' && steps.tf-apply-registry.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-registry-state
@@ -72,28 +86,7 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-      - name: Generate registry inventory.ini
-        working-directory: infra/registry
-        run: terraform output -raw ansible_inventory > inventory.ini
-
-      - name: Wait for registry EC2 to be ready
-        working-directory: infra/registry
-        run: |
-          aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
-          echo "Instance status OK, waiting for SSH daemon..."
-          sleep 30
-
-      - name: Deploy registry (Ansible)
-        working-directory: infra/registry
-        run: |
-          chmod 400 registry-key-terraform.pem
-          ansible-playbook -i inventory.ini playbook.yml
-
-      - name: Export registry IP
-        id: registry
-        working-directory: infra/registry
-        run: echo "ip=$(terraform output -raw instance_ip)" >> "$GITHUB_OUTPUT"
-
+      # ── App state (juste après registry TF — gain ~2-4 min) ─────────────
       - name: Download app Terraform state
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -102,20 +95,26 @@ jobs:
           path: infra/app
 
       - name: Cleanup orphaned app resources
-        if: hashFiles('infra/app/terraform.tfstate') == ''
+        if: inputs.scope == 'full' && hashFiles('infra/app/terraform.tfstate') == ''
         run: bash infra/scripts/cleanup-orphans.sh app
 
       - name: Terraform init (app)
         working-directory: infra/app
         run: terraform init -input=false
 
+      - uses: actions/cache@v4
+        with:
+          path: infra/app/.terraform
+          key: terraform-app-${{ hashFiles('infra/app/.terraform.lock.hcl') }}
+
       - name: Terraform apply (app)
+        if: inputs.scope == 'full'
         id: tf-apply-app
         working-directory: infra/app
         run: terraform apply -auto-approve -input=false
 
       - name: Upload app Terraform state
-        if: steps.tf-apply-app.outcome == 'success'
+        if: inputs.scope == 'full' && steps.tf-apply-app.outcome == 'success'
         uses: actions/upload-artifact@v4
         with:
           name: terraform-app-state
@@ -125,64 +124,121 @@ jobs:
           if-no-files-found: error
           overwrite: true
 
-      - name: Export app IP
-        id: app
-        working-directory: infra/app
-        run: echo "ip=$(terraform output -raw instance_ip)" >> "$GITHUB_OUTPUT"
+      # ── Registry Ansible (requis avant docker push) ──────────────────────
+      - name: Generate registry inventory.ini
+        if: inputs.scope == 'full'
+        working-directory: infra/registry
+        run: terraform output -raw ansible_inventory > inventory.ini
+
+      - name: Wait for registry EC2 to be ready
+        if: inputs.scope == 'full'
+        working-directory: infra/registry
+        run: |
+          aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
+          sleep 15
+
+      - name: Deploy registry (Ansible)
+        if: inputs.scope == 'full'
+        working-directory: infra/registry
+        run: |
+          chmod 400 registry-key-terraform.pem
+          ansible-playbook -i inventory.ini playbook.yml
+
+      - name: Export IPs
+        id: ips
+        run: |
+          echo "registry_ip=$(terraform -chdir=infra/registry output -raw instance_ip)" >> "$GITHUB_OUTPUT"
+          echo "app_ip=$(terraform -chdir=infra/app output -raw instance_ip)" >> "$GITHUB_OUTPUT"
+
+  # ── Build backend + frontend en parallèle (2 runners) ────────────────────
+  build:
+    needs: infrastructure
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - component: backend
+            dockerfile: infra/docker/Dockerfile.backend
+            image: backend
+          - component: frontend
+            dockerfile: infra/docker/Dockerfile.frontend
+            image: frontend
+    steps:
+      - uses: actions/checkout@v5
 
       - name: Configure insecure registry on runner
         run: |
-          echo "{\"insecure-registries\":[\"${{ steps.registry.outputs.ip }}:443\"]}" | sudo tee /etc/docker/daemon.json
+          echo "{\"insecure-registries\":[\"${{ needs.infrastructure.outputs.registry_ip }}:443\"]}" | sudo tee /etc/docker/daemon.json
           sudo systemctl restart docker
           sleep 5
 
       - name: Login to private registry
+        env:
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
         run: |
-          echo "$REGISTRY_PASSWORD" | docker login "${{ steps.registry.outputs.ip }}:443" \
+          echo "$REGISTRY_PASSWORD" | docker login "${{ needs.infrastructure.outputs.registry_ip }}:443" \
             -u "$REGISTRY_USERNAME" --password-stdin
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+      - uses: docker/setup-buildx-action@v4
         with:
           driver: docker
 
-      - name: Build and push backend image
+      - name: Build and push ${{ matrix.component }}
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: infra/docker/Dockerfile.backend
+          file: ${{ matrix.dockerfile }}
           push: true
-          tags: ${{ steps.registry.outputs.ip }}:443/${{ env.IMAGE_NAMESPACE }}/backend:latest
-          provenance: false
-          sbom: false
-
-      - name: Build and push frontend image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: infra/docker/Dockerfile.frontend
-          push: true
-          tags: ${{ steps.registry.outputs.ip }}:443/${{ env.IMAGE_NAMESPACE }}/frontend:latest
+          tags: ${{ needs.infrastructure.outputs.registry_ip }}:443/${{ env.IMAGE_NAMESPACE }}/${{ matrix.image }}:latest
           provenance: false
           sbom: false
           build-args: |
-            REACT_APP_API_URL=http://${{ steps.app.outputs.ip }}:8000
+            REACT_APP_API_URL=http://${{ needs.infrastructure.outputs.app_ip }}:8000
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.component }}
+
+  # ── Déploiement app + validation ─────────────────────────────────────────
+  deploy:
+    needs: [infrastructure, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-ansible-${{ runner.os }}-v1
+
+      - run: pip install ansible-core
+
+      - name: Download app Terraform state
+        uses: actions/download-artifact@v4
+        with:
+          name: terraform-app-state
+          path: infra/app
+
+      - name: Terraform init (app)
+        working-directory: infra/app
+        run: terraform init -input=false
 
       - name: Generate app inventory.ini
         working-directory: infra/app
         run: terraform output -raw ansible_inventory > inventory.ini
 
-      - name: Wait for app EC2 to be ready
-        working-directory: infra/app
-        run: |
-          aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
-          echo "Instance status OK, waiting for SSH daemon..."
-          sleep 30
-
       - name: Deploy application (Ansible)
         working-directory: infra/app
         env:
-          REGISTRY_HOST: ${{ steps.registry.outputs.ip }}
+          REGISTRY_HOST: ${{ needs.infrastructure.outputs.registry_ip }}
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           IMAGE_NAMESPACE: inscription
@@ -198,27 +254,25 @@ jobs:
           ansible-playbook -i inventory.ini playbook.yml
 
       - name: Validate deployment (curl)
+        env:
+          ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
-          APP_IP="${{ steps.app.outputs.ip }}"
-          echo "Backend /users"
+          APP_IP="${{ needs.infrastructure.outputs.app_ip }}"
           curl -fsS "http://${APP_IP}:8000/users" | jq -e '.users | type == "array"'
-          echo "Backend /auth/login"
           curl -fsS -X POST "http://${APP_IP}:8000/auth/login" \
             -H 'Content-Type: application/json' \
             -d "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" \
             | jq -e '.token | type == "string"'
-          echo "Frontend"
           curl -fsS -o /dev/null "http://${APP_IP}:3000/"
-          echo "Adminer"
           curl -fsS -o /dev/null "http://${APP_IP}:8080/"
-          echo "All post-deployment checks passed."
 
       - name: Deployment summary
         run: |
           {
-            echo "## Déploiement terminé"
-            echo "- Registry HTTPS : https://${{ steps.registry.outputs.ip }}"
-            echo "- Application : http://${{ steps.app.outputs.ip }}:3000"
-            echo "- API : http://${{ steps.app.outputs.ip }}:8000"
-            echo "- Adminer : http://${{ steps.app.outputs.ip }}:8080"
+            echo "## Déploiement terminé (${{ inputs.scope }})"
+            echo "- Registry HTTPS : https://${{ needs.infrastructure.outputs.registry_ip }}"
+            echo "- Application : http://${{ needs.infrastructure.outputs.app_ip }}:3000"
+            echo "- API : http://${{ needs.infrastructure.outputs.app_ip }}:8000"
+            echo "- Adminer : http://${{ needs.infrastructure.outputs.app_ip }}:8080"
           } >> "$GITHUB_STEP_SUMMARY"
