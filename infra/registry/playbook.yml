@@ -20,6 +20,8 @@
     - name: Attendre la fin de cloud-init
       command: cloud-init status --wait
       changed_when: false
+      register: cloud_init_wait
+      failed_when: cloud_init_wait.rc not in [0, 2]
       tags: [bootstrap, deploy]
 
     - name: Vérification des variables registry
