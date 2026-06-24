@@ -160,8 +160,16 @@
       when: docker_login.rc != 0
       tags: [deploy]
 
-    - name: Pull et démarrage de la stack
-      shell: docker compose pull && docker compose up -d --wait
+    - name: Pull des images
+      command: docker compose pull
+      args:
+        chdir: "{{ project_dir }}"
+      async: 600
+      poll: 10
+      tags: [deploy]
+
+    - name: Démarrage de la stack
+      command: docker compose up -d
       args:
         chdir: "{{ project_dir }}"
       tags: [deploy]

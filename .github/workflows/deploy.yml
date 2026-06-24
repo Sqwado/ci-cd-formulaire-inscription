@@ -257,12 +257,26 @@ jobs:
           ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
         run: |
           APP_IP="${{ needs.infrastructure.outputs.app_ip }}"
+          wait_for() {
+            local url="$1"
+            for i in $(seq 1 30); do
+              if curl -fsS "$url" > /dev/null 2>&1; then
+                return 0
+              fi
+              sleep 10
+            done
+            echo "Timeout: $url"
+            return 1
+          }
+          wait_for "http://${APP_IP}:8000/users"
           curl -fsS "http://${APP_IP}:8000/users" | jq -e '.users | type == "array"'
           curl -fsS -X POST "http://${APP_IP}:8000/auth/login" \
             -H 'Content-Type: application/json' \
             -d "{\"email\":\"${ADMIN_EMAIL}\",\"password\":\"${ADMIN_PASSWORD}\"}" \
             | jq -e '.token | type == "string"'
+          wait_for "http://${APP_IP}:3000/"
           curl -fsS -o /dev/null "http://${APP_IP}:3000/"
+          wait_for "http://${APP_IP}:8080/"
           curl -fsS -o /dev/null "http://${APP_IP}:8080/"
 
       - name: Deployment summary
