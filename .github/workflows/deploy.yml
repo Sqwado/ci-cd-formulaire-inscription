@@ -19,6 +19,7 @@ env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
   IMAGE_NAMESPACE: inscription
+  ANSIBLE_CONFIG: ${{ github.workspace }}/infra/ansible.cfg
 
 jobs:
   # ── Infra : Terraform registry + app enchaînés, puis Ansible registry ──
@@ -47,8 +48,6 @@ jobs:
           key: pip-ansible-${{ runner.os }}-v1
 
       - run: pip install ansible-core
-
-      # ── Registry state ───────────────────────────────────────────────────
       - name: Download registry Terraform state
         uses: actions/download-artifact@v4
         continue-on-error: true
@@ -135,7 +134,7 @@ jobs:
         working-directory: infra/registry
         run: |
           aws ec2 wait instance-status-ok --instance-ids "$(terraform output -raw instance_id)"
-          sleep 15
+          sleep 10
 
       - name: Deploy registry (Ansible)
         if: inputs.scope == 'full'
@@ -251,7 +250,8 @@ jobs:
           JWT_SECRET: ${{ secrets.JWT_SECRET }}
         run: |
           chmod 400 app-key-terraform.pem
-          ansible-playbook -i inventory.ini playbook.yml
+          TAGS="${{ inputs.scope == 'application' && '--tags deploy' || '' }}"
+          ansible-playbook -i inventory.ini playbook.yml $TAGS
 
       - name: Validate deployment (curl)
         env:

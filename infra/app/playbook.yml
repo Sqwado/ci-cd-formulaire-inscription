@@ -23,12 +23,15 @@
   tasks:
     - name: Attendre que SSH soit disponible
       wait_for_connection:
-        delay: 15
+        delay: 5
         timeout: 300
-        sleep: 10
+        sleep: 5
+      tags: [bootstrap, deploy]
 
-    - name: Collecter les facts
-      setup:
+    - name: Attendre la fin de cloud-init
+      command: cloud-init status --wait
+      changed_when: false
+      tags: [bootstrap, deploy]
 
     - name: Vérification des variables obligatoires
       assert:
@@ -42,30 +45,33 @@
           - admin_password | length > 0
           - jwt_secret | length > 0
         fail_msg: "Variables d'environnement manquantes (voir .env.example / GitHub Secrets)."
+      tags: [bootstrap, deploy]
+
+    - name: Vérifier si Docker est déjà installé
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: false
+      tags: [bootstrap, deploy]
 
     - name: Installation des paquets
       apt:
         update_cache: yes
+        cache_valid_time: 3600
         name:
           - docker.io
           - docker-compose-v2
           - curl
         state: present
+      when: docker_check.rc != 0
+      tags: [bootstrap]
 
     - name: Ajout user au groupe docker
       user:
         name: ubuntu
         groups: docker
         append: yes
-
-    - name: Recharger la session SSH (groupe docker)
-      meta: reset_connection
-
-    - name: Attendre SSH après reconnexion
-      wait_for_connection:
-        delay: 5
-        timeout: 120
-        sleep: 5
+      tags: [bootstrap]
 
     - name: Création des dossiers
       file:
@@ -77,22 +83,7 @@
       loop:
         - "{{ project_dir }}"
         - "{{ project_dir }}/db"
-
-    - name: Copie des migrations SQL
-      copy:
-        src: "{{ playbook_dir }}/../../db/"
-        dest: "{{ project_dir }}/db/"
-        owner: ubuntu
-        group: ubuntu
-        mode: "0644"
-
-    - name: Copie du docker-compose.yml
-      template:
-        src: docker-compose.yml
-        dest: "{{ project_dir }}/docker-compose.yml"
-        owner: ubuntu
-        group: ubuntu
-        mode: "0644"
+      tags: [bootstrap, deploy]
 
     - name: Configuration Docker daemon (registry insecure HTTPS)
       copy:
@@ -103,19 +94,39 @@
           }
         mode: "0644"
       notify: Restart docker
+      tags: [bootstrap, deploy]
 
     - name: Appliquer le redémarrage Docker si nécessaire
       meta: flush_handlers
+      tags: [bootstrap, deploy]
 
-    - name: Attendre que Docker soit prêt après redémarrage
+    - name: Attendre que Docker soit prêt
       wait_for:
         path: /var/run/docker.sock
         state: present
-        delay: 5
+        delay: 2
         timeout: 60
+      tags: [bootstrap, deploy]
+
+    - name: Copie des migrations SQL
+      copy:
+        src: "{{ playbook_dir }}/../../db/"
+        dest: "{{ project_dir }}/db/"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      tags: [deploy]
+
+    - name: Copie du docker-compose.yml
+      template:
+        src: docker-compose.yml
+        dest: "{{ project_dir }}/docker-compose.yml"
+        owner: ubuntu
+        group: ubuntu
+        mode: "0644"
+      tags: [deploy]
 
     - name: Vérifier la connectivité vers le registry
-      become_user: ubuntu
       shell: |
         set -o pipefail
         code=$(curl -ksS -o /dev/null -w "%{http_code}" "https://{{ registry_host }}:443/v2/")
@@ -125,6 +136,7 @@
         executable: /bin/bash
       register: registry_ping
       changed_when: false
+      tags: [deploy]
 
     - name: Login au registry privé
       environment:
@@ -138,6 +150,7 @@
         executable: /bin/bash
       register: docker_login
       no_log: true
+      tags: [deploy]
 
     - name: Vérifier le login registry
       fail:
@@ -145,50 +158,26 @@
           docker login a échoué (code {{ docker_login.rc }}).
           Vérifiez REGISTRY_USERNAME et REGISTRY_PASSWORD dans GitHub Secrets.
       when: docker_login.rc != 0
+      tags: [deploy]
 
-    - name: Stop stack existante
-      command: docker compose down
+    - name: Pull et démarrage de la stack
+      shell: docker compose pull && docker compose up -d --wait
       args:
         chdir: "{{ project_dir }}"
-      ignore_errors: yes
-
-    - name: Pull des images
-      command: docker compose pull
-      args:
-        chdir: "{{ project_dir }}"
-
-    - name: Démarrage de la stack
-      command: docker compose up -d
-      args:
-        chdir: "{{ project_dir }}"
-
-    - name: Attente santé backend
-      uri:
-        url: "http://localhost:8000/users"
-        status_code: 200
-      register: backend_health
-      until: backend_health.status == 200
-      retries: 30
-      delay: 10
-
-    - name: Attente santé frontend
-      uri:
-        url: "http://localhost:3000/"
-        status_code: 200
-      register: frontend_health
-      until: frontend_health.status == 200
-      retries: 30
-      delay: 10
+      tags: [deploy]
 
     - name: Statut des conteneurs
       command: docker compose ps
       args:
         chdir: "{{ project_dir }}"
       register: compose_ps_output
+      changed_when: false
+      tags: [deploy]
 
     - name: Affichage du statut final
       debug:
         msg: "{{ compose_ps_output.stdout_lines }}"
+      tags: [deploy]
 
   handlers:
     - name: Restart docker

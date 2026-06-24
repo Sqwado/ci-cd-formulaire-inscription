@@ -94,6 +94,21 @@ resource "aws_instance" "registry_server" {
   key_name               = aws_key_pair.generated_key.key_name
   vpc_security_group_ids = [aws_security_group.registry_sg.id]
 
+  user_data = base64encode(<<-EOF
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - apache2-utils
+  - openssl
+runcmd:
+  - usermod -aG docker ubuntu
+  - systemctl enable docker
+  - systemctl start docker
+EOF
+  )
+
   root_block_device {
     volume_size = 20
     volume_type = "gp3"

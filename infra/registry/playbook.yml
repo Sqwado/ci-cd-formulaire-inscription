@@ -12,12 +12,15 @@
   tasks:
     - name: Attendre que SSH soit disponible
       wait_for_connection:
-        delay: 15
+        delay: 5
         timeout: 300
-        sleep: 10
+        sleep: 5
+      tags: [bootstrap, deploy]
 
-    - name: Collecter les facts
-      setup:
+    - name: Attendre la fin de cloud-init
+      command: cloud-init status --wait
+      changed_when: false
+      tags: [bootstrap, deploy]
 
     - name: Vérification des variables registry
       assert:
@@ -25,23 +28,34 @@
           - registry_admin_user | length > 0
           - registry_admin_password | length > 0
         fail_msg: "REGISTRY_USERNAME et REGISTRY_PASSWORD doivent être définis (GitHub Secrets)."
+      tags: [bootstrap, deploy]
+
+    - name: Vérifier si Docker est déjà installé
+      command: docker --version
+      register: docker_check
+      changed_when: false
+      failed_when: false
+      tags: [bootstrap, deploy]
 
     - name: Installation des paquets
       apt:
         update_cache: yes
+        cache_valid_time: 3600
         name:
           - docker.io
           - docker-compose-v2
           - apache2-utils
-          - python3-passlib
           - openssl
         state: present
+      when: docker_check.rc != 0
+      tags: [bootstrap]
 
     - name: Ajout user au groupe docker
       user:
         name: ubuntu
         groups: docker
         append: yes
+      tags: [bootstrap]
 
     - name: Création des dossiers
       file:
@@ -56,16 +70,24 @@
         - "{{ project_dir }}/data"
         - "{{ project_dir }}/ssl"
         - "{{ project_dir }}/nginx"
+      tags: [bootstrap, deploy]
 
     - name: Génération mot de passe registry
-      htpasswd:
+      shell: |
+        htpasswd -nbB "{{ registry_admin_user }}" "{{ registry_admin_password }}" \
+          > "{{ project_dir }}/auth/registry.password"
+      args:
+        executable: /bin/bash
+      no_log: true
+      tags: [bootstrap, deploy]
+
+    - name: Permissions fichier htpasswd
+      file:
         path: "{{ project_dir }}/auth/registry.password"
-        name: "{{ registry_admin_user }}"
-        password: "{{ registry_admin_password }}"
         owner: ubuntu
         group: ubuntu
         mode: "0640"
-        crypt_scheme: bcrypt
+      tags: [bootstrap, deploy]
 
     - name: Génération certificat SSL auto-signé
       command: >
@@ -75,6 +97,7 @@
         -subj "/CN={{ public_ip }}"
       args:
         creates: "{{ project_dir }}/ssl/registry.crt"
+      tags: [bootstrap]
 
     - name: Ajustement des permissions du certificat SSL
       file:
@@ -85,6 +108,7 @@
       loop:
         - "{{ project_dir }}/ssl/registry.crt"
         - "{{ project_dir }}/ssl/registry.key"
+      tags: [bootstrap]
 
     - name: Copie de la configuration Nginx
       template:
@@ -93,6 +117,7 @@
         owner: ubuntu
         group: ubuntu
         mode: "0644"
+      tags: [deploy]
 
     - name: Copie du docker-compose.yml
       template:
@@ -101,24 +126,23 @@
         owner: ubuntu
         group: ubuntu
         mode: "0644"
-
-    - name: Stop stack
-      command: docker compose stop
-      args:
-        chdir: "{{ project_dir }}"
-      ignore_errors: yes
+      tags: [deploy]
 
     - name: Démarrage de la stack
-      command: docker compose up --force-recreate -d
+      command: docker compose up -d
       args:
         chdir: "{{ project_dir }}"
+      tags: [deploy]
 
     - name: Récupération du statut des conteneurs
       command: docker compose ps
       args:
         chdir: "{{ project_dir }}"
       register: compose_ps_output
+      changed_when: false
+      tags: [deploy]
 
     - name: Affichage du statut final
       debug:
         msg: "{{ compose_ps_output.stdout_lines }}"
+      tags: [deploy]

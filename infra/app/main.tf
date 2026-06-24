@@ -102,6 +102,20 @@ resource "aws_instance" "app_server" {
   key_name               = aws_key_pair.generated_key.key_name
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
+  user_data = base64encode(<<-EOF
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - curl
+runcmd:
+  - usermod -aG docker ubuntu
+  - systemctl enable docker
+  - systemctl start docker
+EOF
+  )
+
   root_block_device {
     volume_size = 30
     volume_type = "gp3"
