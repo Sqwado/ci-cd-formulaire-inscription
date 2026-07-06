@@ -24,6 +24,7 @@ Application React avec formulaire d'inscription, persistance **MySQL** via une A
 | Tests d'infrastructure (4 pts) | `docker.yml` — healthchecks + `curl` API/login/React/Adminer | ✅ |
 | Tests E2E Cypress (4 pts) | 8 specs (mock, Docker, offline, admin) | ✅ |
 | Pipeline CI/CD + déploiement prod (4 pts) | Pages + Vercel + MySQL Alwaysdata | ✅ |
+| Projet final Zero Touch (Master 2) | `deploy.yml` — Terraform + Ansible + AWS | ✅ |
 
 ### Fonctionnalités
 
@@ -181,9 +182,62 @@ Centralisées dans `src/module/module.js` :
 - Date de naissance : formats acceptés, majorité (18 ans)
 - Code postal : format français métropolitain / DOM-TOM
 
+## Déploiement Zero Touch (AWS)
+
+Projet final **Industrialisation & Automatisation** : déploiement complet sur AWS (région `eu-west-3`) sans connexion SSH humaine, orchestré par un seul workflow GitHub Actions.
+
+Documentation détaillée : [ARCHITECTURE.md](./ARCHITECTURE.md) · livrable : [rendu.txt](./rendu.txt) · secrets : [.env.sample](./.env.sample)
+
+### Principe
+
+Deux EC2 distinctes sont provisionnées par **Terraform**, configurées par **Ansible**, et reliées par la pipeline :
+
+| EC2 | Dossier | Rôle |
+|-----|---------|------|
+| Registry | `infra/registry/` | Registry Docker privé (Nginx HTTPS, auth htpasswd) |
+| Application | `infra/app/` | Frontend, API FastAPI, MySQL, Adminer |
+
+La pipeline construit les images (`infra/docker/`), les pousse sur le registry privé, puis déploie la stack applicative.
+
+### Dossier `registry/` à la racine
+
+Le dépôt contient **deux emplacements** pour le registry Docker :
+
+| Dossier | Usage |
+|---------|--------|
+| [`registry/`](./registry/) | **Module autonome** (TP / phase 1) — Terraform + Ansible utilisables en local, hors pipeline, pour provisionner et configurer le registry seul |
+| [`infra/registry/`](./infra/registry/) | **Version intégrée CI/CD** — utilisée par `deploy.yml`, secrets GitHub, inventaire dynamique, cloud-init, nettoyage des orphelins AWS |
+
+Les templates Docker (Nginx, `docker-compose`) sont identiques ; la différence principale est que `infra/registry/` lit `REGISTRY_USERNAME` / `REGISTRY_PASSWORD` depuis les secrets (pas de mot de passe en dur), et expose les outputs Terraform attendus par la pipeline (`ansible_inventory`, clé SSH volatile).
+
+> Ne pas mélanger les deux stacks sur le même compte AWS sans `terraform destroy` préalable : les noms de ressources diffèrent (`registry-key-terraform` vs `ci-inscription-registry-key`).
+
+### Lancer le déploiement
+
+1. Configurer les **GitHub Secrets** listés dans [`.env.sample`](./.env.sample) (AWS, registry, MySQL, admin, JWT). **Ne jamais committer les clés AWS.**
+2. GitHub Actions → workflow **Deploy** → **Run workflow**
+3. Choisir le scope :
+   - **`full`** — registry + application + build images (premier run ou reset complet)
+   - **`application`** — rebuild images + redéploiement app (registry déjà en place)
+
+À la fin, la pipeline valide l'API, le login admin, le frontend et Adminer (`curl`), puis met à jour [`rendu.txt`](./rendu.txt) avec les IPs publiques.
+
+### Structure infrastructure
+
+```
+registry/              # TP registry autonome (Terraform + Ansible)
+infra/
+├── registry/          # Registry — version pipeline
+├── app/               # EC2 applicative (Terraform + Ansible)
+├── docker/            # Dockerfiles production (CI)
+└── scripts/           # cleanup-orphans, generate-rendu
+.github/workflows/
+└── deploy.yml         # workflow_dispatch — déploiement Zero Touch
+```
+
 ## CI/CD
 
-Trois workflows sur `master` :
+Quatre workflows sur `master` :
 
 ### `.github/workflows/build_test_react.yml`
 
@@ -204,6 +258,16 @@ Trois workflows sur `master` :
 1. Tests Jest
 2. Build et déploiement API sur **Vercel** (`cdg1`, MySQL Alwaysdata via secrets)
 
+### `.github/workflows/deploy.yml` (Zero Touch)
+
+1. Terraform → EC2 registry + EC2 application
+2. Ansible → registry HTTPS (Nginx, certificat auto-signé)
+3. Build & push images `backend` / `frontend` sur le registry privé
+4. Ansible → pull images, `docker compose up` sur l'EC2 applicative
+5. Validation `curl` + génération de `rendu.txt`
+
+Voir la section [Déploiement Zero Touch](#déploiement-zero-touch-aws) et [`.env.sample`](./.env.sample) pour la liste complète des secrets.
+
 ### Secrets GitHub
 
 | Secret | Workflow |
@@ -213,9 +277,11 @@ Trois workflows sur `master` :
 | `REACT_APP_API_URL` | Build Pages → API prod |
 | `DOCKERHUB_USERNAME`, `DOCKERHUB_TOKEN` | Images Docker |
 | `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID` | Déploiement API |
+| `AWS_*`, `REGISTRY_*`, `MYSQL_*`, `ADMIN_*`, `JWT_SECRET` | **Deploy** (Zero Touch AWS) |
 | Variables MySQL/admin | Vercel dashboard + secrets |
 
-MySQL production : **Alwaysdata** (variables dans Vercel, pas dans `.env` local).
+MySQL production (Pages/Vercel) : **Alwaysdata** (variables dans Vercel, pas dans `.env` local).  
+MySQL Zero Touch : instance MySQL dans le `docker-compose` de l'EC2 applicative (secrets GitHub).
 
 ## Documentation JSDoc
 

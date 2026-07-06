@@ -10,8 +10,15 @@ Ce dossier contient toute l'infrastructure du projet final (registry + applicati
 
 ## Démarrage rapide
 
-1. Configurer les secrets GitHub (voir `.env.example` à la racine).
+1. Configurer les secrets GitHub (voir [`.env.sample`](../.env.sample) à la racine).
 2. Lancer le workflow **Deploy** depuis GitHub Actions (`workflow_dispatch`).
+
+## Relation avec `registry/` à la racine
+
+- [`../registry/`](../registry/) — module **autonome** (TP phase registry) : Terraform + Ansible exécutables en local, sans la pipeline complète.
+- [`registry/`](./registry/) — même rôle, mais **branché sur `deploy.yml`** (secrets GitHub, outputs `ansible_inventory`, cloud-init).
+
+Les deux partagent les mêmes templates Nginx / docker-compose ; seul `infra/registry/` est invoqué par la CI.
 
 ## Déploiement manuel (développement)
 
@@ -30,4 +37,13 @@ terraform output -raw ansible_inventory > inventory.ini
 ansible-playbook -i inventory.ini playbook.yml
 ```
 
-> Le dossier `registry/` à la racine est l'ancienne version du TP ; la référence officielle est `infra/registry/`.
+Pour tester **uniquement** le registry hors pipeline :
+
+```bash
+cd registry   # à la racine du dépôt
+terraform init && terraform apply
+# Créer inventory.ini manuellement ou compléter les outputs Terraform
+ansible-playbook -i inventory.ini playbook.yml
+```
+
+> Le playbook racine utilise des identifiants de démo (`admin` / `admin123`) — réservé au TP local. En production CI, utiliser `infra/registry/` avec les secrets GitHub.
