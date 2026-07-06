@@ -5,16 +5,16 @@ Repository GitHub :
 https://github.com/Sqwado/ci-cd-formulaire-inscription
 
 IP publique — Application (Frontend / API / Adminer) :
-http://35.180.86.93:3000
-http://35.180.86.93:8000
-http://35.180.86.93:8080
+http://13.39.47.1:3000
+http://13.39.47.1:8000
+http://13.39.47.1:8080
 
 IP publique — Registry Docker privé (HTTPS) :
-https://35.180.87.209
-(UI : https://35.180.87.209/ — API registry : https://35.180.87.209:443/v2/)
+https://13.37.32.191
+(UI : https://13.37.32.191/ — API registry : https://13.37.32.191:443/v2/)
 
 # Connexion au registry Docker :
-#   docker login 35.180.87.209:443
+#   docker login 13.37.32.191:443
 #   Utilisateur : secret GitHub REGISTRY_USERNAME (voir .env.sample)
 #   Mot de passe  : secret GitHub REGISTRY_PASSWORD (voir .env.sample)
 #
